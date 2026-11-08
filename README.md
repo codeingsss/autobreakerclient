@@ -79,9 +79,11 @@ their own JVM requirement.
 ## Usage
 
 1. Drop the built jar into your `mods` folder alongside Fabric API.
-2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu.
+2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu — it
+   opens centered on screen.
 3. Click a module to toggle it; drag its slider (when present) to adjust a value;
-   drag the panel's header to move it.
+   scroll to see more modules if the list doesn't fit; drag the panel's header to
+   move it.
 
 ## Module list
 
@@ -96,12 +98,31 @@ their own JVM requirement.
 | No Entity Shadows | Disables the blob shadow under entities |
 | No View Bobbing | Disables the camera bob while walking |
 
+### Quality of Life
+| Module | Effect |
+|---|---|
+| Zoom | Hold `C` to zoom in (lowers FOV and sensitivity) |
+| Full Bright | Maxes out the brightness setting |
+| Auto GG | Sends "gg" in chat when the server announces a round has ended |
+
 ### HUD
 | Module | Effect |
 |---|---|
 | Watermark | Shows an "AutoBreaker" tag, top-left |
 | FPS Counter | Shows current FPS |
 | Coordinates | Shows your X/Y/Z position |
+| Ping | Shows your connection latency |
+| CPS | Shows left/right clicks-per-second |
+| Clock | Shows the current system time |
+| Armor HUD | Shows equipped armor with durability |
+
+The Zoom, Full Bright, Auto GG, Ping, CPS, Clock and Armor HUD modules are adapted
+from [CoralMod](https://github.com/jirmjahu/coralmod) (CC0-1.0 — public domain),
+remapped from Mojang's official mappings onto this project's Yarn mappings (e.g.
+`Options#fov()` → `GameOptions#getFov()`). CPS counting is done by polling GLFW's
+mouse button state once per client tick instead of CoralMod's mixin-based click
+event, since this project avoids mixins — see
+[the "What this is not" section](#what-this-is-not).
 
 ## License
 

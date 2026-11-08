@@ -1,8 +1,12 @@
 package jevmc.org.example.autobreakerclient.client.module;
 
 import jevmc.org.example.autobreakerclient.client.config.ConfigManager;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.ArmorHudModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.ClockModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.CoordinatesModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.CpsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.FpsCounterModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.PingModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.WatermarkModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.ExtremePerformanceModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.FastGraphicsModule;
@@ -11,6 +15,9 @@ import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoClou
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoEntityShadowsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoViewBobbingModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoVsyncModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.qol.AutoGgModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.qol.FullBrightModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.qol.ZoomModule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,9 +44,17 @@ public final class ModuleManager {
         MODULES.add(new NoEntityShadowsModule());
         MODULES.add(new NoViewBobbingModule());
 
+        MODULES.add(new ZoomModule());
+        MODULES.add(new FullBrightModule());
+        MODULES.add(new AutoGgModule());
+
         MODULES.add(new WatermarkModule());
         MODULES.add(new FpsCounterModule());
         MODULES.add(new CoordinatesModule());
+        MODULES.add(new PingModule());
+        MODULES.add(new CpsModule());
+        MODULES.add(new ClockModule());
+        MODULES.add(new ArmorHudModule());
 
         ConfigManager.load(MODULES);
     }
