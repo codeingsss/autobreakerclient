@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jevmc.org.example.autobreakerclient.client.module.Module;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.HudModule;
 import jevmc.org.example.autobreakerclient.client.module.setting.IntSetting;
 import jevmc.org.example.autobreakerclient.client.module.setting.Setting;
 import net.fabricmc.loader.api.FabricLoader;
@@ -51,6 +52,9 @@ public final class ConfigManager {
                         }
                     }
                 }
+                if (module instanceof HudModule hudModule && entry.has("x") && entry.has("y")) {
+                    hudModule.setPosition(entry.get("x").getAsInt(), entry.get("y").getAsInt());
+                }
                 if (entry.has("enabled") && entry.get("enabled").getAsBoolean()) {
                     module.setEnabled(true);
                 }
@@ -73,6 +77,10 @@ public final class ConfigManager {
                 }
             }
             entry.add("settings", settings);
+            if (module instanceof HudModule hudModule) {
+                entry.addProperty("x", hudModule.getX());
+                entry.addProperty("y", hudModule.getY());
+            }
             modulesJson.add(module.getName(), entry);
         }
         root.add("modules", modulesJson);

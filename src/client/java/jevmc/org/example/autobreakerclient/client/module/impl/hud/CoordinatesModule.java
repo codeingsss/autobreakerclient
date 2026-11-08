@@ -10,14 +10,14 @@ public class CoordinatesModule extends HudModule {
     }
 
     @Override
-    public int renderHud(DrawContext context, int x, int y) {
+    protected RenderResult renderHud(DrawContext context, int x, int y) {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
         if (player == null) {
-            return 0;
+            return new RenderResult(0, 0);
         }
         String text = String.format("%.1f / %.1f / %.1f", player.getX(), player.getY(), player.getZ());
         context.drawTextWithShadow(client.textRenderer, text, x, y, 0xFFAAAAAA);
-        return client.textRenderer.fontHeight + 2;
+        return new RenderResult(client.textRenderer.getWidth(text), client.textRenderer.fontHeight);
     }
 }

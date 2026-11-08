@@ -19,15 +19,16 @@ public class ArmorHudModule extends HudModule {
     }
 
     @Override
-    public int renderHud(DrawContext context, int x, int y) {
+    protected RenderResult renderHud(DrawContext context, int x, int y) {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
         if (player == null) {
-            return 0;
+            return new RenderResult(0, 0);
         }
 
         int rowY = y;
         int rows = 0;
+        int maxTextWidth = 0;
         for (EquipmentSlot slot : SLOTS) {
             ItemStack stack = player.getEquippedStack(slot);
             if (stack.isEmpty()) {
@@ -40,10 +41,16 @@ public class ArmorHudModule extends HudModule {
                 String text = durability + "/" + maxDamage;
                 context.drawTextWithShadow(client.textRenderer, text, x + ITEM_SIZE + 4,
                         rowY + (ITEM_SIZE - client.textRenderer.fontHeight) / 2, 0xFFAAAAAA);
+                maxTextWidth = Math.max(maxTextWidth, client.textRenderer.getWidth(text));
             }
             rowY += ITEM_SIZE + ITEM_SPACING;
             rows++;
         }
-        return rows == 0 ? 0 : rowY - y - ITEM_SPACING + 2;
+        if (rows == 0) {
+            return new RenderResult(0, 0);
+        }
+        int width = ITEM_SIZE + (maxTextWidth > 0 ? ITEM_SIZE / 4 + maxTextWidth : 0);
+        int height = rowY - y - ITEM_SPACING;
+        return new RenderResult(width, height);
     }
 }

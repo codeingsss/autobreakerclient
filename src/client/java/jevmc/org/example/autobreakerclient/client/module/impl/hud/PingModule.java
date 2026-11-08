@@ -12,18 +12,18 @@ public class PingModule extends HudModule {
     }
 
     @Override
-    public int renderHud(DrawContext context, int x, int y) {
+    protected RenderResult renderHud(DrawContext context, int x, int y) {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayNetworkHandler handler = client.getNetworkHandler();
         if (client.player == null || handler == null) {
-            return 0;
+            return new RenderResult(0, 0);
         }
         PlayerListEntry entry = handler.getPlayerListEntry(client.player.getUuid());
         if (entry == null) {
-            return 0;
+            return new RenderResult(0, 0);
         }
         String text = entry.getLatency() + " ms";
         context.drawTextWithShadow(client.textRenderer, text, x, y, 0xFFAAAAAA);
-        return client.textRenderer.fontHeight + 2;
+        return new RenderResult(client.textRenderer.getWidth(text), client.textRenderer.fontHeight);
     }
 }

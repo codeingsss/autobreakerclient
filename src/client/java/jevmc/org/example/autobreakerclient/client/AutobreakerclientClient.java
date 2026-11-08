@@ -1,6 +1,7 @@
 package jevmc.org.example.autobreakerclient.client;
 
 import jevmc.org.example.autobreakerclient.client.gui.ClickGuiScreen;
+import jevmc.org.example.autobreakerclient.client.gui.HudEditScreen;
 import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
 import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
@@ -45,14 +46,12 @@ public class AutobreakerclientClient implements ClientModInitializer {
 
     private void renderHud(net.minecraft.client.gui.DrawContext context, net.minecraft.client.render.RenderTickCounter tickCounter) {
         Screen screen = MinecraftClient.getInstance().currentScreen;
-        if (screen instanceof ClickGuiScreen) {
+        if (screen instanceof ClickGuiScreen || screen instanceof HudEditScreen) {
             return;
         }
-        int x = 4;
-        int y = 4;
         for (Module module : ModuleManager.getModules(Category.HUD)) {
             if (module.isEnabled() && module instanceof HudModule hudModule) {
-                y += hudModule.renderHud(context, x, y);
+                hudModule.renderAt(context);
             }
         }
     }

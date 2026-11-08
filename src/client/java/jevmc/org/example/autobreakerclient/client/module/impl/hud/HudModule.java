@@ -5,14 +5,54 @@ import jevmc.org.example.autobreakerclient.client.module.Module;
 import net.minecraft.client.gui.DrawContext;
 
 public abstract class HudModule extends Module {
+    private static int nextDefaultSlot = 0;
+
+    private int x;
+    private int y;
+    private int lastWidth = 40;
+    private int lastHeight = 10;
+
     protected HudModule(String name, String description) {
         super(name, description, Category.HUD, false);
+        this.x = 4;
+        this.y = 4 + (nextDefaultSlot++) * 16;
+    }
+
+    public final int getX() {
+        return x;
+    }
+
+    public final int getY() {
+        return y;
+    }
+
+    public final int getWidth() {
+        return lastWidth;
+    }
+
+    public final int getHeight() {
+        return lastHeight;
+    }
+
+    public final void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    /** Draws this element and remembers the box it occupied, for the HUD editor's drag handles. */
+    public final void renderAt(DrawContext context) {
+        RenderResult result = renderHud(context, x, y);
+        lastWidth = result.width();
+        lastHeight = result.height();
     }
 
     /**
-     * Draws this element's single line of text at the given top-left position.
+     * Draws this element's content with its top-left corner at (x, y).
      *
-     * @return the height in pixels this element occupied, so callers can stack the next line below it.
+     * @return the pixel size this element occupied; return (0, 0) if nothing was drawn.
      */
-    public abstract int renderHud(DrawContext context, int x, int y);
+    protected abstract RenderResult renderHud(DrawContext context, int x, int y);
+
+    public record RenderResult(int width, int height) {
+    }
 }

@@ -7,16 +7,20 @@ one-click presets for squeezing out as much FPS as vanilla's own settings allow.
 
 ## Features
 
-- **Blurred, rounded click GUI** — opened with `Right Shift`. The background behind the
-  panel is blurred using Minecraft's own `DrawContext#applyBlur()` post effect (the same
-  mechanism vanilla uses for its pause/inventory screens), and every panel is drawn with
-  rounded corners using plain solid fills (no shaders, no textures, no mixins).
+- **Fixed, centered click GUI** — opened with `Right Shift`, styled after Lunar Client's
+  mod menu: a rectangular window with a left-hand category sidebar (tabs, not a single
+  scrolling list) instead of a floating draggable box. The background is blurred using
+  Minecraft's own `DrawContext#applyBlur()` post effect (the same mechanism vanilla uses
+  for its pause/inventory screens), and every panel is drawn with rounded corners using
+  plain solid fills (no shaders, no textures, no mixins).
 - **Performance modules** — toggle vsync, particles, clouds, entity shadows, view
   bobbing, graphics preset and render distance independently, or flip all of them at once
   with **Extreme Performance**.
-- **HUD modules** — watermark, FPS counter, coordinates.
-- **Config persistence** — module states and slider values are saved to
-  `config/autobreakerclient.json` and restored on the next launch.
+- **HUD modules** — watermark, FPS counter, coordinates, ping, CPS, clock, armor HUD,
+  server address — each independently draggable via the in-game **HUD editor**
+  (`HUD` tab → `Edit HUD Layout...`).
+- **Config persistence** — module states, slider values and HUD element positions are
+  saved to `config/autobreakerclient.json` and restored on the next launch.
 
 ## What this is *not*
 
@@ -79,11 +83,13 @@ their own JVM requirement.
 ## Usage
 
 1. Drop the built jar into your `mods` folder alongside Fabric API.
-2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu — it
-   opens centered on screen.
+2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu — it's a
+   fixed, centered window with category tabs down the left side (Performance / Quality
+   of Life / HUD).
 3. Click a module to toggle it; drag its slider (when present) to adjust a value;
-   scroll to see more modules if the list doesn't fit; drag the panel's header to
-   move it.
+   scroll if a tab's list doesn't fit.
+4. On the HUD tab, click `Edit HUD Layout...` to drag each HUD element (enabled or not)
+   to wherever you want it on screen. Press Escape to save and close the editor.
 
 ## Module list
 
@@ -120,10 +126,14 @@ their own JVM requirement.
 The Zoom, Full Bright, Auto GG, Ping, CPS, Clock, Armor HUD and Server Address modules are adapted
 from [CoralMod](https://github.com/jirmjahu/coralmod) (CC0-1.0 — public domain),
 remapped from Mojang's official mappings onto this project's Yarn mappings (e.g.
-`Options#fov()` → `GameOptions#getFov()`). CPS counting is done by polling GLFW's
-mouse button state once per client tick instead of CoralMod's mixin-based click
-event, since this project avoids mixins — see
-[the "What this is not" section](#what-this-is-not).
+`Options#fov()` → `GameOptions#getFov()`). CoralMod counts clicks through a custom
+mixin-based event; this project avoids mixins (see
+[the "What this is not" section](#what-this-is-not)) and instead chains onto
+`GLFW.glfwSetMouseButtonCallback` directly — it captures whatever callback Minecraft's
+own `Mouse` class already installed and always re-invokes it after recording a click, so
+vanilla input isn't affected. An earlier version polled the button state once per client
+tick (20 Hz), which silently missed fast clicks (drag-clicking, butterfly-clicking)
+whose entire press-release cycle can be shorter than one tick.
 
 ## License
 
