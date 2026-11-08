@@ -115,8 +115,9 @@ their own JVM requirement.
 | CPS | Shows left/right clicks-per-second |
 | Clock | Shows the current system time |
 | Armor HUD | Shows equipped armor with durability |
+| Server Address | Shows the server you're connected to |
 
-The Zoom, Full Bright, Auto GG, Ping, CPS, Clock and Armor HUD modules are adapted
+The Zoom, Full Bright, Auto GG, Ping, CPS, Clock, Armor HUD and Server Address modules are adapted
 from [CoralMod](https://github.com/jirmjahu/coralmod) (CC0-1.0 — public domain),
 remapped from Mojang's official mappings onto this project's Yarn mappings (e.g.
 `Options#fov()` → `GameOptions#getFov()`). CPS counting is done by polling GLFW's

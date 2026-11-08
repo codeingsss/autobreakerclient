@@ -7,6 +7,7 @@ import jevmc.org.example.autobreakerclient.client.module.impl.hud.CoordinatesMod
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.CpsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.FpsCounterModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.PingModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.ServerAddressModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.WatermarkModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.ExtremePerformanceModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.FastGraphicsModule;
@@ -55,6 +56,7 @@ public final class ModuleManager {
         MODULES.add(new CpsModule());
         MODULES.add(new ClockModule());
         MODULES.add(new ArmorHudModule());
+        MODULES.add(new ServerAddressModule());
 
         ConfigManager.load(MODULES);
     }
