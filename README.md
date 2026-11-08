@@ -36,11 +36,23 @@ capable GPU with vsync off and render distance turned down, not a number this mo
 force on its own.
 
 The GUI's visual language (dark, blurred, rounded panels) is a common style across
-open-source Minecraft client mods, including [LiquidBounce](https://github.com/CCBlueX/LiquidBounce)
-(GPL-3.0). No LiquidBounce code is vendored here; the implementation in
-`client/gui/RoundedRect.java` and `client/gui/ClickGuiScreen.java` is original. This
-project is licensed GPL-3.0 to keep that door open for anyone who does want to pull in
-GPL-3.0 code later — see [LICENSE](LICENSE).
+open-source Minecraft client mods. We looked at pulling actual code from two of them
+before writing our own:
+
+- **[LiquidBounce](https://github.com/CCBlueX/LiquidBounce)** (GPL-3.0) — the `legacy`
+  branch's ClickGUI is immediate-mode OpenGL 1.x from the 1.8.x era and doesn't target
+  a rendering pipeline this game version still has; the `nextgen` branch's ClickGUI is
+  a Svelte web page rendered through an embedded browser, which is the opposite of what
+  an FPS-focused client wants open on top of the game.
+- **[Meteor Client](https://github.com/MeteorDevelopment/meteor-client)** (GPL-3.0) —
+  draws its rounded panels with NanoVG, which gives properly anti-aliased corners but
+  pulls in a native LWJGL binding as a dependency.
+
+Neither was a drop-in fit for a zero-extra-dependency, blur-via-vanilla-API GUI, so
+`client/gui/RoundedRect.java` and `client/gui/ClickGuiScreen.java` here are original,
+built directly on `DrawContext#applyBlur()` and plain solid fills. This project stays
+GPL-3.0 regardless, so that door is open if someone wants to pull in GPL-3.0 code (e.g.
+a NanoVG-based theme) later — see [LICENSE](LICENSE).
 
 ## Requirements
 

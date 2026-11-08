@@ -68,7 +68,7 @@ public class ClickGuiScreen extends Screen {
         panelX = Math.max(0, Math.min(panelX, Math.max(0, this.width - PANEL_WIDTH)));
         panelY = Math.max(0, Math.min(panelY, Math.max(0, this.height - HEADER_HEIGHT)));
 
-        context.applyBlur();
+        tryApplyBlur(context);
 
         moduleRows.clear();
         sliderRows.clear();
@@ -195,6 +195,17 @@ public class ClickGuiScreen extends Screen {
             ModuleManager.saveConfig();
         }
         return handled;
+    }
+
+    private static void tryApplyBlur(DrawContext context) {
+        try {
+            context.applyBlur();
+        } catch (IllegalStateException alreadyBlurred) {
+            // Minecraft itself applies a blur once per frame when a screen is opened
+            // (Screen#renderBackground, gated by the vanilla "Menu Background
+            // Blurriness" option) and can do so immediately on open, before our own
+            // render() call. The effect is already in place either way, so ignore it.
+        }
     }
 
     private static void updateSlider(SliderHit hit, double mouseX) {
