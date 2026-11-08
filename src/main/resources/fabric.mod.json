@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "autobreakerclient",
+  "version": "${version}",
+  "name": "AutoBreaker",
+  "description": "A Fabric client mod with a blurred, rounded-corner click GUI and one-click presets for maximising FPS.",
+  "authors": [
+    "AutoBreaker Contributors"
+  ],
+  "contact": {},
+  "license": "GPL-3.0-only",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "jevmc.org.example.autobreakerclient.client.AutobreakerclientDataGenerator"
+    ],
+    "client": [
+      "jevmc.org.example.autobreakerclient.client.AutobreakerclientClient"
+    ],
+    "main": [
+      "jevmc.org.example.autobreakerclient.Autobreakerclient"
+    ]
+  },
+  "mixins": [
+    "autobreakerclient.mixins.json",
+    {
+      "config": "autobreakerclient.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
