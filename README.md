@@ -111,6 +111,28 @@ their own JVM requirement.
 | Full Bright | Maxes out the brightness setting |
 | Auto GG | Sends "gg" in chat when the server announces a round has ended |
 
+### Visual
+| Module | Effect |
+|---|---|
+| Motion Blur | Blends recent frames together for a trailing blur on fast camera movement |
+
+Motion Blur is adapted from the open-source
+[motionblur-fabric-1.21.11](https://github.com/7avyy/motionblur-fabric-1.21.11) (GPL-3.0,
+originally by wavy/Noryea), reimplemented through public API only: the original reads
+its blend amount through three `@Accessor` mixins and a reflective `createBuffer` call
+so the strength can be a live slider; this version instead bakes one fixed blend amount
+into the post-effect pipeline (`assets/autobreakerclient/post_effect/motion_blur.json`),
+needing only `MinecraftClient#getShaderLoader()` and `PostEffectProcessor#render`, both
+public. The pipeline JSON and shader are modelled directly on vanilla's own
+`assets/minecraft/post_effect/blur.json`. The one mixin this project does have injects
+at the tail of `GameRenderer#render` — there's no public "frame fully rendered" event —
+and everything it touches (the class, the `render` method, the shadowed `pool` field)
+resolved cleanly against this project's Yarn mappings during the build. What can't be
+confirmed without actually launching the game — there's no GPU/display in the sandbox
+this was built in — is whether the post-effect's internal framebuffers keep their pixel
+contents between separate `render()` calls, which is what makes the accumulation trick
+visible at all. If it doesn't show anything, that assumption is the first thing to check.
+
 ### HUD
 | Module | Effect |
 |---|---|

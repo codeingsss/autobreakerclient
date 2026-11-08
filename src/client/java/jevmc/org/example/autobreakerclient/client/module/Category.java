@@ -3,6 +3,7 @@ package jevmc.org.example.autobreakerclient.client.module;
 public enum Category {
     PERFORMANCE("Performance"),
     QOL("Quality of Life"),
+    VISUAL("Visual"),
     HUD("HUD");
 
     private final String displayName;

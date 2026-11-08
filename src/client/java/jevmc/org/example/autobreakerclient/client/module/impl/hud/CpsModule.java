@@ -33,7 +33,12 @@ public class CpsModule extends HudModule {
 
     private void hookMouse(MinecraftClient client) {
         long handle = client.getWindow().getHandle();
-        GLFWMouseButtonCallback previous = GLFW.glfwSetMouseButtonCallback(handle, (window, button, action, mods) -> {
+        // A one-element array, not a plain local, because the callback below
+        // refers to the callback it is itself replacing: a local variable
+        // can't be read from within its own initializer ("previous might not
+        // have been initialized"), but an already-assigned array can.
+        GLFWMouseButtonCallback[] previous = new GLFWMouseButtonCallback[1];
+        previous[0] = GLFW.glfwSetMouseButtonCallback(handle, (window, button, action, mods) -> {
             try {
                 if (action == GLFW.GLFW_PRESS) {
                     long now = System.currentTimeMillis();
@@ -44,8 +49,8 @@ public class CpsModule extends HudModule {
                     }
                 }
             } finally {
-                if (previous != null) {
-                    previous.invoke(window, button, action, mods);
+                if (previous[0] != null) {
+                    previous[0].invoke(window, button, action, mods);
                 }
             }
         });

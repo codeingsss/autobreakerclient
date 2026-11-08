@@ -19,6 +19,7 @@ import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoVsyn
 import jevmc.org.example.autobreakerclient.client.module.impl.qol.AutoGgModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.qol.FullBrightModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.qol.ZoomModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.visual.MotionBlurModule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,8 @@ public final class ModuleManager {
         MODULES.add(new ZoomModule());
         MODULES.add(new FullBrightModule());
         MODULES.add(new AutoGgModule());
+
+        MODULES.add(new MotionBlurModule());
 
         MODULES.add(new WatermarkModule());
         MODULES.add(new FpsCounterModule());

@@ -4,6 +4,7 @@
   "package": "jevmc.org.example.autobreakerclient.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "MotionBlurMixin"
   ],
   "injectors": {
     "defaultRequire": 1
