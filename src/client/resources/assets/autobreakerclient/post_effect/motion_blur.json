@@ -1,6 +1,5 @@
 {
     "targets": {
-        "accum": {},
         "swap": {}
     },
     "passes": [
@@ -9,7 +8,7 @@
             "fragment_shader": "autobreakerclient:post/motion_blur_mix",
             "inputs": [
                 { "sampler_name": "Current", "target": "minecraft:main", "bilinear": false },
-                { "sampler_name": "History", "target": "accum", "bilinear": false }
+                { "sampler_name": "History", "target": "autobreakerclient:previous", "bilinear": false }
             ],
             "output": "swap",
             "uniforms": {
@@ -24,7 +23,7 @@
             "inputs": [
                 { "sampler_name": "In", "target": "swap", "bilinear": false }
             ],
-            "output": "accum",
+            "output": "minecraft:main",
             "uniforms": {
                 "BlitConfig": [
                     { "name": "ColorModulate", "type": "vec4", "value": [1.0, 1.0, 1.0, 1.0] }
@@ -37,7 +36,7 @@
             "inputs": [
                 { "sampler_name": "In", "target": "swap", "bilinear": false }
             ],
-            "output": "minecraft:main",
+            "output": "autobreakerclient:previous",
             "uniforms": {
                 "BlitConfig": [
                     { "name": "ColorModulate", "type": "vec4", "value": [1.0, 1.0, 1.0, 1.0] }

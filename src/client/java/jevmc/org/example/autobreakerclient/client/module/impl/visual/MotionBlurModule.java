@@ -3,47 +3,58 @@ package jevmc.org.example.autobreakerclient.client.module.impl.visual;
 import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.PostEffectProcessor;
+import net.minecraft.client.gl.SimpleFramebuffer;
+import net.minecraft.client.render.FrameGraphBuilder;
+import net.minecraft.client.util.Handle;
 import net.minecraft.client.util.memory.ObjectAllocator;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * Frame-accumulation motion blur: each frame is blended with an accumulation
- * buffer from the previous frame, giving fast camera movement a trailing
- * smear. Ported from the open-source
- * {@code motionblur-fabric-1.21.11} mod (GPL-3.0,
- * github.com/7avyy/motionblur-fabric-1.21.11, originally by wavy/Noryea),
- * but reimplemented through public API only: that mod reads/writes its
- * shader's internal passes through three accessor mixins and a reflective
- * {@code createBuffer} call to give the blend amount a live, draggable
- * slider; this version instead bakes a single fixed blend strength into the
- * post-effect pipeline JSON (see {@code assets/autobreakerclient/post_effect
- * /motion_blur.json}), which only needs {@link MinecraftClient#getShaderLoader()}
- * and {@link PostEffectProcessor#render}, both public.
+ * Frame-accumulation motion blur: each frame is blended with a history buffer
+ * from the previous frame, giving fast camera movement a trailing smear.
  *
- * <p>The one piece that still needs a mixin is knowing <em>when</em> to run
- * the effect each frame — there is no public "after the frame is fully
- * rendered" event, so {@code mixin.MotionBlurMixin} injects at the tail of
- * {@code GameRenderer#render}, mirroring where the reference mod hooks in.</p>
+ * <p>Originally written against {@link PostEffectProcessor#render(Framebuffer,
+ * ObjectAllocator)}, trusting that the pipeline's own internal "accum" target
+ * would keep its pixel contents between separate {@code render()} calls
+ * across frames — that was the one assumption in this project that public,
+ * javap-verified API couldn't confirm, since it's a runtime behaviour, not a
+ * method signature. Comparing against Polyfrost's PolyBlur (GPL-3.0,
+ * github.com/Polyfrost/PolyBlur) showed that assumption doesn't hold: PolyBlur
+ * never relies on it either, and instead keeps its own history framebuffer
+ * and explicitly re-captures it every frame. This does the same — {@link
+ * #history} is a {@link SimpleFramebuffer} this class owns, imported into the
+ * post-effect's frame graph as the external target {@code
+ * autobreakerclient:previous} alongside vanilla's own {@code minecraft:main},
+ * mirroring how {@code WorldRenderer} imports its own long-lived
+ * entity-outline framebuffer the same way for its outline post-effect. The
+ * pipeline (see {@code assets/autobreakerclient/post_effect/motion_blur.json})
+ * writes the blended result into both {@code minecraft:main} (so it displays)
+ * and {@code autobreakerclient:previous} (so next frame blends against it),
+ * so no copy needs to happen back on the Java side.</p>
  *
- * <p>This is the one feature in AutoBreaker that reaches past public,
- * javap-verified API into Minecraft's post-processing pipeline. Everything
- * else in this project was checked against the real Yarn-mapped classes
- * before being written; whether a {@link PostEffectProcessor}'s internal
- * framebuffers actually keep their pixel contents between separate
- * {@code render()} calls — which is what makes the accumulation trick work
- * at all — can only be confirmed by actually running the game.</p>
+ * <p>The one piece needing a mixin is knowing <em>when</em> to run this each
+ * frame — there's no public "after the frame is fully rendered" event, so
+ * {@code mixin.MotionBlurMixin} injects at the tail of
+ * {@code GameRenderer#render}.</p>
  */
 public class MotionBlurModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger("AutoBreaker");
     private static final Identifier EFFECT_ID = Identifier.of("autobreakerclient", "motion_blur");
+    private static final Identifier PREVIOUS_ID = Identifier.of("autobreakerclient", "previous");
+    private static final Identifier MAIN_ID = Identifier.ofVanilla("main");
+    private static final Set<Identifier> EXTERNAL_TARGETS = Set.of(MAIN_ID, PREVIOUS_ID);
 
     private static volatile boolean enabledFlag;
     private static volatile boolean failed;
+    private static Framebuffer history;
 
     public MotionBlurModule() {
         super("Motion Blur", "Blends recent frames together for a trailing blur on fast camera movement.", Category.VISUAL, false);
@@ -70,17 +81,55 @@ public class MotionBlurModule extends Module {
             return;
         }
         try {
-            PostEffectProcessor processor = client.getShaderLoader()
-                    .loadPostEffect(EFFECT_ID, Set.of(Identifier.ofVanilla("main")));
+            Framebuffer main = client.getFramebuffer();
+            ensureHistoryBuffer(main.textureWidth, main.textureHeight);
+
+            PostEffectProcessor processor = client.getShaderLoader().loadPostEffect(EFFECT_ID, EXTERNAL_TARGETS);
             if (processor == null) {
                 failed = true;
                 LOGGER.warn("Motion Blur post-effect failed to load, disabling for this session");
                 return;
             }
-            processor.render(client.getFramebuffer(), allocator);
+
+            FrameGraphBuilder builder = new FrameGraphBuilder();
+            Handle<Framebuffer> mainHandle = builder.createObjectNode("autobreakerclient_main", main);
+            Handle<Framebuffer> historyHandle = builder.createObjectNode("autobreakerclient_history", history);
+
+            Map<Identifier, Handle<Framebuffer>> handles = new HashMap<>();
+            handles.put(MAIN_ID, mainHandle);
+            handles.put(PREVIOUS_ID, historyHandle);
+
+            processor.render(builder, main.textureWidth, main.textureHeight, new MapFramebufferSet(handles));
+            builder.run(allocator);
         } catch (Exception e) {
             failed = true;
             LOGGER.warn("Motion Blur post-effect failed at runtime, disabling for this session", e);
+        }
+    }
+
+    private static void ensureHistoryBuffer(int width, int height) {
+        if (history == null) {
+            history = new SimpleFramebuffer("autobreakerclient_motion_blur_history", width, height, false);
+        } else if (history.textureWidth != width || history.textureHeight != height) {
+            history.resize(width, height);
+        }
+    }
+
+    private static final class MapFramebufferSet implements PostEffectProcessor.FramebufferSet {
+        private final Map<Identifier, Handle<Framebuffer>> handles;
+
+        private MapFramebufferSet(Map<Identifier, Handle<Framebuffer>> handles) {
+            this.handles = handles;
+        }
+
+        @Override
+        public void set(Identifier id, Handle<Framebuffer> handle) {
+            handles.put(id, handle);
+        }
+
+        @Override
+        public Handle<Framebuffer> get(Identifier id) {
+            return handles.get(id);
         }
     }
 }
