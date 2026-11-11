@@ -7,6 +7,7 @@ import jevmc.org.example.autobreakerclient.client.module.Module;
 import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.HudModule;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -30,6 +31,10 @@ public class AutobreakerclientClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
                 KeyBinding.Category.MISC
         ));
+
+        // Deferred: enabling a module from saved config can touch
+        // MinecraftClient.getInstance().options, which is still null here.
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ModuleManager.loadConfig());
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndTick);
 

@@ -32,6 +32,12 @@ public final class ModuleManager {
     private ModuleManager() {
     }
 
+    /**
+     * Constructs every module (registering keybindings, event listeners, etc.
+     * along the way) without touching saved config yet. Must run during
+     * {@code onInitializeClient()} so keybindings register before
+     * {@code GameOptions} finalizes its key list.
+     */
     public static void init() {
         if (initialized) {
             return;
@@ -60,7 +66,15 @@ public final class ModuleManager {
         MODULES.add(new ClockModule());
         MODULES.add(new ArmorHudModule());
         MODULES.add(new ServerAddressModule());
+    }
 
+    /**
+     * Applies saved config (enabling modules, restoring slider/HUD-position
+     * values). Must run only after the client is fully up — enabling a
+     * module can touch {@code MinecraftClient.getInstance().options}, which
+     * is still null during {@code onInitializeClient()}.
+     */
+    public static void loadConfig() {
         ConfigManager.load(MODULES);
     }
 
