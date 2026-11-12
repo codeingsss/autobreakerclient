@@ -38,30 +38,68 @@ repositories {
         name = 'Modrinth'
         url = 'https://api.modrinth.com/maven'
     }
+    mavenCentral()
 }
 
-// OneConfig ships as a jar-in-jar bundle whose actual Fabric mod (id
-// "oneconfigv1") lives nested under META-INF/jars/, alongside the API jars
-// used below for compiling against it. Fabric Loader's "Incompatible mods -
-// oneconfigv1 is missing" error happens because Loom's dev runtime classpath
-// doesn't replicate Fabric Loader's own jar-in-jar auto-extraction for
-// third-party mods the way a real packaged install does - so that nested jar
-// needs to be pulled out and declared as its own mod dependency explicitly.
-// Resolved eagerly (not as a lazy task) because the dependencies {} block
-// below needs the extracted file's path immediately.
+// OneConfig ships as a jar-in-jar bundle: every one of its real Fabric mods
+// (43 of them) lives nested under META-INF/jars/, each with its own
+// fabric.mod.json. A real packaged install has Fabric Loader auto-extract
+// these at launch, but Loom's dev runtime classpath doesn't replicate that
+// for third-party mods - that's the cause of the "Incompatible mods -
+// oneconfigv1 is missing" screen (oneconfigv1 is OneConfig's actual runtime).
+//
+// Also tried, and backed out: adding org.polyfrost.compose's bridge jar
+// ("poly-compose", needed by OneConfigPreLaunch for
+// org/polyfrost/compose/render/PolyBitmap) on top of this. That made
+// compileClientJava fail on "class file for
+// net.kyori.adventure.platform.modcommon.IdentifiedAtRuntime not found" -
+// a class that, as far as this investigation got, doesn't exist in either
+// bundle's 82 nested jars, nor on Maven Central under any group/artifact
+// name, nor in poly-compose's own bytecode. The actual source of that
+// requirement is still unclear (most likely something Loom's dev
+// environment synthesizes once enough entity-mixin-carrying mods are
+// present), so poly-compose is left out until that's actually understood -
+// see the project README for the current status of the PolyBitmap crash.
 def oneConfigBundleForJiJ = configurations.detachedConfiguration(
         dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
 ).resolve().first()
-def oneConfigV1Jar = layout.buildDirectory.file("oneconfigv1-extracted.jar").get().asFile
-oneConfigV1Jar.parentFile.mkdirs()
+
+// Two different needs pull in two different, non-overlapping subsets of
+// OneConfig's 43 nested jars:
+//  - RUNTIME needs "oneconfigv1" (its actual Fabric mod) registered as its
+//    own mod dependency, or Fabric Loader reports it as missing.
+//  - COMPILE TIME needs "config"/"config-impl" (where Tree/Property/Config/
+//    ConfigEntrypoint - the classes AutoBreakerConfig.kt actually imports -
+//    live) on the classpath, but NOT registered as modImplementation: doing
+//    that for "poly-compose" (OneConfigPreLaunch's org.polyfrost.compose
+//    bridge, needed for a NoClassDefFoundError on
+//    org/polyfrost/compose/render/PolyBitmap) pulled in a
+//    "net.kyori.adventure.platform.modcommon" class that doesn't exist
+//    anywhere in either bundle's jars nor on Maven Central under any name -
+//    still unresolved, so poly-compose is deliberately left out of both
+//    sets for now; see the README for the current status of that crash.
+def jarInJarDir = layout.buildDirectory.dir("jarInJar").get().asFile
+// delete + copy, not sync (sync isn't available as a Project method on this
+// Gradle version) and not plain copy (which never deletes stale files from a
+// previous invocation - jars extracted by an *earlier* version of this
+// block, like poly-compose during troubleshooting, silently kept sitting in
+// this directory and kept getting picked back up by the fileTrees below
+// regardless of the current include patterns, which was a real, confusing
+// bug here).
+delete jarInJarDir
+jarInJarDir.mkdirs()
 copy {
     from(zipTree(oneConfigBundleForJiJ)) {
-        include "META-INF/jars/${project.minecraft_version}-fabric-*.jar"
+        include "META-INF/jars/${project.minecraft_version}-fabric-*.jar" // oneconfigv1 (runtime)
+        include "META-INF/jars/config-*.jar" // config + config-impl (compile-time API)
     }
-    into oneConfigV1Jar.parentFile
-    eachFile { it.path = oneConfigV1Jar.name }
+    into jarInJarDir
+    eachFile { it.path = it.name }
     includeEmptyDirs = false
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
+def runtimeModJars = fileTree(jarInJarDir) { include "${project.minecraft_version}-fabric-*.jar" }
+def compileOnlyApiJars = fileTree(jarInJarDir) { include "config-*.jar" }
 
 dependencies {
     // To change the versions see the gradle.properties file
@@ -73,7 +111,9 @@ dependencies {
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
     modImplementation "maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}"
     modImplementation "maven.modrinth:oneconfig:${project.oneconfig_version}"
-    modImplementation files(oneConfigV1Jar)
+    runtimeModJars.files.each { jarFile ->
+        modImplementation files(jarFile)
+    }
 }
 
 processResources {
@@ -93,50 +133,17 @@ kotlin {
     jvmToolchain(21)
 }
 
-// OneConfig and Compose Multiplatform ship as jar-in-jar bundles: the real
-// API classes (org.polyfrost.oneconfig.api.config.v1.*, etc.) live inside
-// nested jars under META-INF/jars/ that Fabric Loader only extracts at
-// runtime. Loom's mod dependency handling exposes the outer bundle jar, but
-// neither javac nor kotlinc can see into a jar nested inside another jar, so
-// compiling against the real API needs those inner jars extracted and added
-// to the compile classpath explicitly.
-def composeBundle = configurations.detachedConfiguration(
-        dependencies.create("maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}")
-).resolve().first()
-
-def modCompileLibsDir = layout.buildDirectory.dir("modCompileLibs")
-def extractModCompileLibs = tasks.register("extractModCompileLibs") {
-    inputs.files(oneConfigBundleForJiJ, composeBundle)
-    outputs.dir(modCompileLibsDir)
-    doLast {
-        def outDir = modCompileLibsDir.get().asFile
-        outDir.mkdirs()
-        [oneConfigBundleForJiJ, composeBundle].each { bundle ->
-            copy {
-                from(zipTree(bundle)) {
-                    include "META-INF/jars/*.jar"
-                    eachFile { it.path = it.name }
-                    includeEmptyDirs = false
-                }
-                into outDir
-            }
-        }
-    }
-}
-def modCompileLibs = fileTree(modCompileLibsDir) {
-    include "*.jar"
-    builtBy extractModCompileLibs
-}
-
+// Neither javac nor kotlinc can see into a jar nested inside another jar
+// either, so compileOnlyApiJars (extracted above) needs to be on the compile
+// classpath for the real org.polyfrost.oneconfig.api.config.v1.* classes
+// (Tree, Property, Config, ConfigEntrypoint) to resolve.
 afterEvaluate {
-    sourceSets.client.compileClasspath += modCompileLibs
+    sourceSets.client.compileClasspath += compileOnlyApiJars
     tasks.named('compileClientJava').configure {
-        dependsOn extractModCompileLibs
-        classpath += modCompileLibs
+        classpath += compileOnlyApiJars
     }
     tasks.named('compileClientKotlin', org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configure {
-        dependsOn extractModCompileLibs
-        libraries.from(modCompileLibs)
+        libraries.from(compileOnlyApiJars)
     }
 }
 
