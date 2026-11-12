@@ -6,6 +6,7 @@ import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
 import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.HudModule;
+import jevmc.org.example.autobreakerclient.client.profile.ServerProfileManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -35,6 +36,8 @@ public class AutobreakerclientClient implements ClientModInitializer {
         // Deferred: enabling a module from saved config can touch
         // MinecraftClient.getInstance().options, which is still null here.
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ModuleManager.loadConfig());
+
+        ServerProfileManager.init();
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndTick);
 
