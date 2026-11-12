@@ -65,6 +65,60 @@ processResources {
     }
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
+// OneConfig and Compose Multiplatform ship as jar-in-jar bundles: the real
+// API classes (org.polyfrost.oneconfig.api.config.v1.*, etc.) live inside
+// nested jars under META-INF/jars/ that Fabric Loader only extracts at
+// runtime. Loom's mod dependency handling exposes the outer bundle jar, but
+// neither javac nor kotlinc can see into a jar nested inside another jar, so
+// compiling against the real API needs those inner jars extracted and added
+// to the compile classpath explicitly.
+def oneConfigBundle = configurations.detachedConfiguration(
+        dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
+).resolve().first()
+def composeBundle = configurations.detachedConfiguration(
+        dependencies.create("maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}")
+).resolve().first()
+
+def modCompileLibsDir = layout.buildDirectory.dir("modCompileLibs")
+def extractModCompileLibs = tasks.register("extractModCompileLibs") {
+    inputs.files(oneConfigBundle, composeBundle)
+    outputs.dir(modCompileLibsDir)
+    doLast {
+        def outDir = modCompileLibsDir.get().asFile
+        outDir.mkdirs()
+        [oneConfigBundle, composeBundle].each { bundle ->
+            copy {
+                from(zipTree(bundle)) {
+                    include "META-INF/jars/*.jar"
+                    eachFile { it.path = it.name }
+                    includeEmptyDirs = false
+                }
+                into outDir
+            }
+        }
+    }
+}
+def modCompileLibs = fileTree(modCompileLibsDir) {
+    include "*.jar"
+    builtBy extractModCompileLibs
+}
+
+afterEvaluate {
+    sourceSets.client.compileClasspath += modCompileLibs
+    tasks.named('compileClientJava').configure {
+        dependsOn extractModCompileLibs
+        classpath += modCompileLibs
+    }
+    tasks.named('compileClientKotlin', org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configure {
+        dependsOn extractModCompileLibs
+        libraries.from(modCompileLibs)
+    }
+}
+
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
     // ensure that the encoding is set to UTF-8, no matter what the system default is
