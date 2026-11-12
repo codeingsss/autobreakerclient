@@ -48,36 +48,31 @@ repositories {
 // for third-party mods - that's the cause of the "Incompatible mods -
 // oneconfigv1 is missing" screen (oneconfigv1 is OneConfig's actual runtime).
 //
-// Also tried, and backed out: adding org.polyfrost.compose's bridge jar
-// ("poly-compose", needed by OneConfigPreLaunch for
-// org/polyfrost/compose/render/PolyBitmap) on top of this. That made
-// compileClientJava fail on "class file for
-// net.kyori.adventure.platform.modcommon.IdentifiedAtRuntime not found" -
-// a class that, as far as this investigation got, doesn't exist in either
-// bundle's 82 nested jars, nor on Maven Central under any group/artifact
-// name, nor in poly-compose's own bytecode. The actual source of that
-// requirement is still unclear (most likely something Loom's dev
-// environment synthesizes once enough entity-mixin-carrying mods are
-// present), so poly-compose is left out until that's actually understood -
-// see the project README for the current status of the PolyBitmap crash.
+// org.polyfrost.compose's bridge jar ("poly-compose", needed by
+// OneConfigPreLaunch for org/polyfrost/compose/render/PolyBitmap) is
+// extracted the same way. Adding it alone used to fail compileClientJava on
+// "class file for net.kyori.adventure.platform.modcommon.IdentifiedAtRuntime
+// not found" - that class turned out to live in net.kyori's
+// adventure-platform-mod-shared-fabric-repack artifact, a real Maven Central
+// coordinate that just isn't bundled as its own nested jar inside OneConfig
+// (poly-compose expects it to arrive as a normal transitive Maven
+// dependency of adventure-platform-fabric, which the manual zipTree
+// extraction above can't provide since it discards POM metadata). Pulling
+// adventure-platform-fabric as a real `include modImplementation` dependency
+// below - instead of extracting it from the bundle - resolves that
+// transitively and jar-in-jars it properly for distribution.
 def oneConfigBundleForJiJ = configurations.detachedConfiguration(
         dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
 ).resolve().first()
 
 // Two different needs pull in two different, non-overlapping subsets of
 // OneConfig's 43 nested jars:
-//  - RUNTIME needs "oneconfigv1" (its actual Fabric mod) registered as its
-//    own mod dependency, or Fabric Loader reports it as missing.
+//  - RUNTIME needs "oneconfigv1" (its actual Fabric mod) and "poly-compose"
+//    (PolyBitmap, used by OneConfigPreLaunch) registered as mod
+//    dependencies, or Fabric Loader/the class loader reports them missing.
 //  - COMPILE TIME needs "config"/"config-impl" (where Tree/Property/Config/
 //    ConfigEntrypoint - the classes AutoBreakerConfig.kt actually imports -
-//    live) on the classpath, but NOT registered as modImplementation: doing
-//    that for "poly-compose" (OneConfigPreLaunch's org.polyfrost.compose
-//    bridge, needed for a NoClassDefFoundError on
-//    org/polyfrost/compose/render/PolyBitmap) pulled in a
-//    "net.kyori.adventure.platform.modcommon" class that doesn't exist
-//    anywhere in either bundle's jars nor on Maven Central under any name -
-//    still unresolved, so poly-compose is deliberately left out of both
-//    sets for now; see the README for the current status of that crash.
+//    live) on the classpath, but NOT registered as modImplementation.
 def jarInJarDir = layout.buildDirectory.dir("jarInJar").get().asFile
 // delete + copy, not sync (sync isn't available as a Project method on this
 // Gradle version) and not plain copy (which never deletes stale files from a
@@ -92,13 +87,14 @@ copy {
     from(zipTree(oneConfigBundleForJiJ)) {
         include "META-INF/jars/${project.minecraft_version}-fabric-*.jar" // oneconfigv1 (runtime)
         include "META-INF/jars/config-*.jar" // config + config-impl (compile-time API)
+        include "META-INF/jars/poly-compose-*.jar" // PolyBitmap etc. (runtime, needed by OneConfigPreLaunch)
     }
     into jarInJarDir
     eachFile { it.path = it.name }
     includeEmptyDirs = false
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
-def runtimeModJars = fileTree(jarInJarDir) { include "${project.minecraft_version}-fabric-*.jar" }
+def runtimeModJars = fileTree(jarInJarDir) { include "${project.minecraft_version}-fabric-*.jar", "poly-compose-*.jar" }
 def compileOnlyApiJars = fileTree(jarInJarDir) { include "config-*.jar" }
 
 dependencies {
@@ -111,6 +107,11 @@ dependencies {
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
     modImplementation "maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}"
     modImplementation "maven.modrinth:oneconfig:${project.oneconfig_version}"
+    // poly-compose (extracted above) needs this exact version on the
+    // classpath; resolving it as a real Maven Central coordinate (rather
+    // than extracting it from the bundle) pulls in its transitive deps too
+    // (adventure-api, adventure-key, adventure-platform-mod-shared-fabric-repack).
+    include modImplementation("net.kyori:adventure-platform-fabric:${project.adventure_platform_fabric_version}")
     runtimeModJars.files.each { jarFile ->
         modImplementation files(jarFile)
     }

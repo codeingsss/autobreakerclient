@@ -65,6 +65,9 @@ a NanoVG-based theme) later — see [LICENSE](LICENSE).
 | Minecraft | 1.21.11 |
 | Fabric Loader | ≥ 0.20.1 |
 | Fabric API | 0.141.6+1.21.11 |
+| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | required — the OneConfig config page is written in Kotlin |
+| [OneConfig](https://modrinth.com/mod/oneconfig) | required — every module is exposed on a real OneConfig settings page instead of (or in addition to) the in-game click GUI |
+| [Compose Multiplatform](https://modrinth.com/mod/compose-multiplatform) | required — OneConfig's own rendering dependency |
 | JDK (build-time) | 25+ (Fabric Loom's current snapshot targeting 1.21.11 requires it; the compiled mod itself targets Java 21 bytecode) |
 
 ## Building
@@ -82,14 +85,19 @@ their own JVM requirement.
 
 ## Usage
 
-1. Drop the built jar into your `mods` folder alongside Fabric API.
+1. Drop the built jar into your `mods` folder alongside Fabric API, Fabric Language
+   Kotlin, Compose Multiplatform and OneConfig (see [Requirements](#requirements)).
 2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu — it's a
    fixed, centered window with category tabs down the left side (Performance / Quality
-   of Life / HUD).
+   of Life / HUD). Every module is also exposed on its own OneConfig page, wired up
+   through `client/oneconfig/AutoBreakerConfig.kt`.
 3. Click a module to toggle it; drag its slider (when present) to adjust a value;
    scroll if a tab's list doesn't fit.
 4. On the HUD tab, click `Edit HUD Layout...` to drag each HUD element (enabled or not)
    to wherever you want it on screen. Press Escape to save and close the editor.
+5. Run `/autobreaker profile set <name>` while connected to a server to have
+   AutoBreaker switch to that OneConfig profile automatically every time you join that
+   address again (`/autobreaker profile clear` / `list` manage the mapping).
 
 ## Module list
 
