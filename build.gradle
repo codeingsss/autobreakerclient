@@ -40,6 +40,29 @@ repositories {
     }
 }
 
+// OneConfig ships as a jar-in-jar bundle whose actual Fabric mod (id
+// "oneconfigv1") lives nested under META-INF/jars/, alongside the API jars
+// used below for compiling against it. Fabric Loader's "Incompatible mods -
+// oneconfigv1 is missing" error happens because Loom's dev runtime classpath
+// doesn't replicate Fabric Loader's own jar-in-jar auto-extraction for
+// third-party mods the way a real packaged install does - so that nested jar
+// needs to be pulled out and declared as its own mod dependency explicitly.
+// Resolved eagerly (not as a lazy task) because the dependencies {} block
+// below needs the extracted file's path immediately.
+def oneConfigBundleForJiJ = configurations.detachedConfiguration(
+        dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
+).resolve().first()
+def oneConfigV1Jar = layout.buildDirectory.file("oneconfigv1-extracted.jar").get().asFile
+oneConfigV1Jar.parentFile.mkdirs()
+copy {
+    from(zipTree(oneConfigBundleForJiJ)) {
+        include "META-INF/jars/${project.minecraft_version}-fabric-*.jar"
+    }
+    into oneConfigV1Jar.parentFile
+    eachFile { it.path = oneConfigV1Jar.name }
+    includeEmptyDirs = false
+}
+
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -50,6 +73,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
     modImplementation "maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}"
     modImplementation "maven.modrinth:oneconfig:${project.oneconfig_version}"
+    modImplementation files(oneConfigV1Jar)
 }
 
 processResources {
@@ -76,21 +100,18 @@ kotlin {
 // neither javac nor kotlinc can see into a jar nested inside another jar, so
 // compiling against the real API needs those inner jars extracted and added
 // to the compile classpath explicitly.
-def oneConfigBundle = configurations.detachedConfiguration(
-        dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
-).resolve().first()
 def composeBundle = configurations.detachedConfiguration(
         dependencies.create("maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}")
 ).resolve().first()
 
 def modCompileLibsDir = layout.buildDirectory.dir("modCompileLibs")
 def extractModCompileLibs = tasks.register("extractModCompileLibs") {
-    inputs.files(oneConfigBundle, composeBundle)
+    inputs.files(oneConfigBundleForJiJ, composeBundle)
     outputs.dir(modCompileLibsDir)
     doLast {
         def outDir = modCompileLibsDir.get().asFile
         outDir.mkdirs()
-        [oneConfigBundle, composeBundle].each { bundle ->
+        [oneConfigBundleForJiJ, composeBundle].each { bundle ->
             copy {
                 from(zipTree(bundle)) {
                     include "META-INF/jars/*.jar"
