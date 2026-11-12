@@ -1,0 +1,146 @@
+:root {
+  --bg: #0b0f1a;
+  --bg-alt: #121829;
+  --card: #161f35;
+  --border: #223052;
+  --text: #e8edf7;
+  --text-dim: #9aa7c7;
+  --accent: #3c8cff;
+  --accent-light: #6fb8ff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+a { color: var(--accent-light); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.nav {
+  position: sticky;
+  top: 0;
+  background: rgba(11, 15, 26, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+.brand:hover { text-decoration: none; }
+.brand-logo { width: 28px; height: 28px; }
+
+.nav nav a {
+  margin-left: 24px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.nav nav a:hover { color: var(--text); text-decoration: none; }
+
+.hero {
+  text-align: center;
+  padding: 100px 24px 70px;
+  background: radial-gradient(ellipse at top, var(--bg-alt) 0%, var(--bg) 60%);
+}
+
+.hero-inner { max-width: 720px; margin: 0 auto; }
+
+.hero h1 {
+  font-size: 2.6rem;
+  margin: 0 0 16px;
+  background: linear-gradient(135deg, var(--text) 30%, var(--accent-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline { color: var(--text-dim); font-size: 1.1rem; margin-bottom: 32px; }
+
+.cta-row { display: flex; gap: 14px; justify-content: center; margin-bottom: 24px; }
+
+.btn {
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.btn:hover { text-decoration: none; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-light); }
+.btn-ghost { background: transparent; color: var(--text); }
+.btn-ghost:hover { background: var(--card); }
+
+.badge-row { display: flex; gap: 10px; justify-content: center; }
+.badge {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.features { max-width: 1100px; margin: 0 auto; padding: 70px 24px; }
+.features h2, .install h2 { text-align: center; font-size: 1.8rem; margin-bottom: 40px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card h3 { margin: 0 0 10px; color: var(--accent-light); }
+.card p { margin: 0; color: var(--text-dim); font-size: 0.95rem; }
+
+.install {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 24px 90px;
+}
+.install ol { color: var(--text-dim); }
+.install li { margin-bottom: 10px; }
+.install code, .install kbd {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+  color: var(--text);
+}
+
+footer {
+  text-align: center;
+  padding: 30px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}

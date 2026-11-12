@@ -1,0 +1,32 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b2a4a"/>
+      <stop offset="100%" stop-color="#0d1420"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6fb8ff"/>
+      <stop offset="100%" stop-color="#3c8cff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- rounded hexagonal badge -->
+  <path d="M80 6
+           L142 42
+           Q150 47 150 56
+           L150 104
+           Q150 113 142 118
+           L80 154
+           Q72 158 64 154
+           L18 118
+           Q10 113 10 104
+           L10 56
+           Q10 47 18 42
+           L64 6
+           Q72 2 80 6 Z"
+        fill="url(#bg)" stroke="#3c8cff" stroke-width="2.5"/>
+
+  <!-- lightning bolt -->
+  <path d="M90 32 L54 86 L76 86 L68 128 L108 70 L86 70 Z"
+        fill="url(#bolt)"/>
+</svg>
