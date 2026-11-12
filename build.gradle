@@ -112,6 +112,17 @@ dependencies {
     // than extracting it from the bundle) pulls in its transitive deps too
     // (adventure-api, adventure-key, adventure-platform-mod-shared-fabric-repack).
     include modImplementation("net.kyori:adventure-platform-fabric:${project.adventure_platform_fabric_version}")
+    // PolyBitmap registers these ImageIO SPI plugins at startup
+    // (javax.imageio.spi.ImageReaderSpi for BMP/WebP). Loom's `include`
+    // bundles only the exact coordinate given to it, not its transitive
+    // deps (confirmed: the built jar's META-INF/jars only had the two
+    // directly-included jars below, not imageio-core/imageio-metadata that
+    // webp/bmp both need at runtime) - so those have to be listed explicitly
+    // too, same as webp/bmp themselves.
+    include modImplementation("com.twelvemonkeys.imageio:imageio-webp:${project.twelvemonkeys_imageio_version}")
+    include modImplementation("com.twelvemonkeys.imageio:imageio-bmp:${project.twelvemonkeys_imageio_version}")
+    include modImplementation("com.twelvemonkeys.imageio:imageio-core:${project.twelvemonkeys_imageio_version}")
+    include modImplementation("com.twelvemonkeys.imageio:imageio-metadata:${project.twelvemonkeys_imageio_version}")
     runtimeModJars.files.each { jarFile ->
         modImplementation files(jarFile)
     }
