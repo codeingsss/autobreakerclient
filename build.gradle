@@ -64,6 +64,9 @@ repositories {
 def oneConfigBundleForJiJ = configurations.detachedConfiguration(
         dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
 ).resolve().first()
+def composeBundleForJiJ = configurations.detachedConfiguration(
+        dependencies.create("maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}")
+).resolve().first()
 
 // Picking individual nested jars by hand (oneconfigv1, poly-compose, ...) was
 // whack-a-mole: OneConfigPreLaunch kept reaching further into OneConfig's own
@@ -126,22 +129,50 @@ copy {
 }
 // OneConfig downloads 4 ambient tracks + a UI pad-loop from Polyfrost's own
 // GitHub on first boot (assets/oneconfig/sounds/external_sounds.json inside
-// oneconfigv1, SHA1-checked against each file). We don't want that traffic or
-// that branding playing by default, and there's no public "disable ambience"
-// config switch to flip - so patch that one manifest entry in place to list
-// zero files. McUiSoundService's ambience playback then just has nothing to
-// play (same as Minecraft's own "missing sound" warnings, not a crash); the
-// 4 short local UI click/open/close/slider effects aren't affected since
-// they're bundled directly in the jar, not fetched externally.
+// oneconfigv1, SHA1-checked against each file) - patching that to list zero
+// files stops the download, but does NOT stop the 4 short click/open/close/
+// slider effects, which are bundled directly in the jar as real assets
+// (assets/oneconfig/sounds/ui/*.ogg) and fire on every interaction with
+// OneConfig's own UI, not just once at boot. assets/oneconfig/sounds.json is
+// Minecraft's own standard sound-event-registry format (same one vanilla
+// resource packs use): emptying it out entirely means every "oneconfig:ui/*"
+// and "oneconfig:ambient/*" sound ID OneConfig's UI code asks for resolves
+// to nothing, which Minecraft's sound system already handles gracefully
+// (same as any other unregistered sound - a quiet warning, not a crash) -
+// confirmed by the same logs already showing "Unable to play empty
+// soundEvent" for other unrelated missing sounds.
+def mutedSoundEvents = layout.buildDirectory.file("tmp/sounds.json").get().asFile
+mutedSoundEvents.parentFile.mkdirs()
+mutedSoundEvents.text = '{}'
 def mutedExternalSounds = layout.buildDirectory.file("tmp/external_sounds.json").get().asFile
 mutedExternalSounds.parentFile.mkdirs()
 mutedExternalSounds.text = '{"baseUrl":"https://raw.githubusercontent.com/Polyfrost/OneConfig/v1/sounds/","files":{}}'
 ant.zip(destfile: fileTree(jarInJarDir) { include "${project.minecraft_version}-fabric-*.jar" }.singleFile, update: true) {
+    zipfileset(file: mutedSoundEvents, fullpath: "assets/oneconfig/sounds.json")
     zipfileset(file: mutedExternalSounds, fullpath: "assets/oneconfig/sounds/external_sounds.json")
 }
-def compileOnlyApiJars = fileTree(jarInJarDir) { include "config-*.jar" }
+// AutoBreakerTheme.kt reaches into OneConfig's own internal.ui.themes.UITheme
+// (needs internal-*.jar) and androidx.compose.ui.graphics.Color (needs these
+// compose-multiplatform jars - same jar-in-jar-bundle shape as OneConfig,
+// just never needed by our own compile classpath before now; Fabric Loader
+// itself already resolves compose-multiplatform's nested jars fine at actual
+// runtime, confirmed by OneConfig's own Compose-rendered UI working in
+// runClient without any of this, so these are compile-only).
+copy {
+    from(zipTree(composeBundleForJiJ)) {
+        include "META-INF/jars/ui-desktop-*.jar", "META-INF/jars/ui-graphics-desktop-*.jar",
+                "META-INF/jars/ui-text-desktop-*.jar", "META-INF/jars/ui-unit-desktop-*.jar",
+                "META-INF/jars/ui-util-desktop-*.jar", "META-INF/jars/runtime-desktop-*.jar"
+    }
+    into jarInJarDir
+    eachFile { it.path = it.name }
+    includeEmptyDirs = false
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+def compileOnlyApiJars = fileTree(jarInJarDir) { include "config-*.jar", "internal-*.jar", "ui-*-desktop-*.jar", "runtime-desktop-*.jar" }
 def runtimeModJars = fileTree(jarInJarDir) {
     include "*.jar"
+    exclude "ui-*-desktop-*.jar", "runtime-desktop-*.jar" // compile-only, see compileOnlyApiJars comment above
     exclude "adventure-platform-fabric-*.jar", "imageio-*.jar" // resolved as real deps instead, see below
 }
 
