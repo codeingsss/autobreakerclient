@@ -124,6 +124,21 @@ copy {
     includeEmptyDirs = false
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
+// OneConfig downloads 4 ambient tracks + a UI pad-loop from Polyfrost's own
+// GitHub on first boot (assets/oneconfig/sounds/external_sounds.json inside
+// oneconfigv1, SHA1-checked against each file). We don't want that traffic or
+// that branding playing by default, and there's no public "disable ambience"
+// config switch to flip - so patch that one manifest entry in place to list
+// zero files. McUiSoundService's ambience playback then just has nothing to
+// play (same as Minecraft's own "missing sound" warnings, not a crash); the
+// 4 short local UI click/open/close/slider effects aren't affected since
+// they're bundled directly in the jar, not fetched externally.
+def mutedExternalSounds = layout.buildDirectory.file("tmp/external_sounds.json").get().asFile
+mutedExternalSounds.parentFile.mkdirs()
+mutedExternalSounds.text = '{"baseUrl":"https://raw.githubusercontent.com/Polyfrost/OneConfig/v1/sounds/","files":{}}'
+ant.zip(destfile: fileTree(jarInJarDir) { include "${project.minecraft_version}-fabric-*.jar" }.singleFile, update: true) {
+    zipfileset(file: mutedExternalSounds, fullpath: "assets/oneconfig/sounds/external_sounds.json")
+}
 def compileOnlyApiJars = fileTree(jarInJarDir) { include "config-*.jar" }
 def runtimeModJars = fileTree(jarInJarDir) {
     include "*.jar"

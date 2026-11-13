@@ -41,16 +41,16 @@ public class ClickGuiScreen extends Screen {
     private static final int COLOR_CONTENT_BG = 0xE6101016;
     private static final int COLOR_TAB_IDLE = 0x00000000;
     private static final int COLOR_TAB_HOVER = 0x30FFFFFF;
-    private static final int COLOR_TAB_SELECTED = 0xFF2F6FE0;
+    private static final int COLOR_TAB_SELECTED = 0xFFFF8A33;
     private static final int COLOR_ROW_IDLE = 0x30000000;
     private static final int COLOR_ROW_HOVER = 0x40FFFFFF;
-    private static final int COLOR_ROW_ENABLED = 0xFF3C8CFF;
+    private static final int COLOR_ROW_ENABLED = 0xFFFF8A33;
     private static final int COLOR_SLIDER_TRACK = 0x30000000;
-    private static final int COLOR_SLIDER_FILL = 0xFF3C8CFF;
+    private static final int COLOR_SLIDER_FILL = 0xFFFF8A33;
     private static final int COLOR_CLOSE_IDLE = 0x20FFFFFF;
     private static final int COLOR_CLOSE_HOVER = 0xFFE64C4C;
     private static final int COLOR_SCROLLBAR = 0x80FFFFFF;
-    private static final int COLOR_ACCENT_TEXT = 0xFF6FB8FF;
+    private static final int COLOR_ACCENT_TEXT = 0xFFFFB366;
 
     private final List<TabHit> tabHits = new ArrayList<>();
     private final List<RowHit> moduleRows = new ArrayList<>();

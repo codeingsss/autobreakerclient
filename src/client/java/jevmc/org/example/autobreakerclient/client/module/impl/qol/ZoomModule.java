@@ -10,11 +10,7 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * Hold-to-zoom, ported from CoralMod (CC0-1.0, github.com/jirmjahu/coralmod)
- * onto this project's Yarn mappings: GameOptions#getFov()/getMouseSensitivity()
- * in place of CoralMod's Mojmap Options#fov()/sensitivity().
- */
+/** Hold-to-zoom: lowers FOV and mouse sensitivity while the key is held. */
 public class ZoomModule extends Module {
     private final KeyBinding zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.autobreakerclient.zoom",

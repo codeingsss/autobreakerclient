@@ -12,13 +12,25 @@ one-click presets for squeezing out as much FPS as vanilla's own settings allow.
   scrolling list) instead of a floating draggable box. The background is blurred using
   Minecraft's own `DrawContext#applyBlur()` post effect (the same mechanism vanilla uses
   for its pause/inventory screens), and every panel is drawn with rounded corners using
-  plain solid fills (no shaders, no textures, no mixins).
+  plain solid fills (no shaders, no textures, no mixins). Signature orange accent, both
+  here and on AutoBreaker's own OneConfig theme.
+- **Performance Governor** — a live FPS-tracking loop, not a one-shot preset: nudges
+  render distance (and, if that's not enough, particles) up or down roughly once a
+  second to hold a target FPS, so it keeps adapting as the scene changes instead of
+  staying fixed at whatever the preset picked at login.
+- **Learned per-server tuning** — leave Performance Governor on for a session and
+  AutoBreaker remembers the render distance it settled on for that server address; next
+  time you join, that value is applied immediately and the Governor picks up refining it
+  from there. A packed lobby and a quiet SMP end up with different numbers, automatically.
 - **Performance modules** — toggle vsync, particles, clouds, entity shadows, view
   bobbing, graphics preset and render distance independently, or flip all of them at once
   with **Extreme Performance**.
 - **HUD modules** — watermark, FPS counter, coordinates, ping, CPS, clock, armor HUD,
-  server address — each independently draggable via the in-game **HUD editor**
-  (`HUD` tab → `Edit HUD Layout...`).
+  server address, and a live ping-stability graph — each independently draggable via the
+  in-game **HUD editor** (`HUD` tab → `Edit HUD Layout...`).
+- **One-string config sharing** — `/autobreaker config export` turns your whole setup
+  (every module's state, settings and HUD layout) into a single compact code; anyone can
+  `/autobreaker config import <code>` it back. No account, no backend, just a string.
 - **Config persistence** — module states, slider values and HUD element positions are
   saved to `config/autobreakerclient.json` and restored on the next launch.
 
@@ -39,24 +51,10 @@ distance, entity count, shaders) — "2000 FPS" is realistic in a simple scene o
 capable GPU with vsync off and render distance turned down, not a number this mod can
 force on its own.
 
-The GUI's visual language (dark, blurred, rounded panels) is a common style across
-open-source Minecraft client mods. We looked at pulling actual code from two of them
-before writing our own:
-
-- **[LiquidBounce](https://github.com/CCBlueX/LiquidBounce)** (GPL-3.0) — the `legacy`
-  branch's ClickGUI is immediate-mode OpenGL 1.x from the 1.8.x era and doesn't target
-  a rendering pipeline this game version still has; the `nextgen` branch's ClickGUI is
-  a Svelte web page rendered through an embedded browser, which is the opposite of what
-  an FPS-focused client wants open on top of the game.
-- **[Meteor Client](https://github.com/MeteorDevelopment/meteor-client)** (GPL-3.0) —
-  draws its rounded panels with NanoVG, which gives properly anti-aliased corners but
-  pulls in a native LWJGL binding as a dependency.
-
-Neither was a drop-in fit for a zero-extra-dependency, blur-via-vanilla-API GUI, so
-`client/gui/RoundedRect.java` and `client/gui/ClickGuiScreen.java` here are original,
-built directly on `DrawContext#applyBlur()` and plain solid fills. This project stays
-GPL-3.0 regardless, so that door is open if someone wants to pull in GPL-3.0 code (e.g.
-a NanoVG-based theme) later — see [LICENSE](LICENSE).
+`client/gui/RoundedRect.java` and `client/gui/ClickGuiScreen.java` are an original,
+zero-extra-dependency GUI: rounded corners are plain circle-equation fills (no shader, no
+texture, no native rendering library), and the background blur comes straight from
+`DrawContext#applyBlur()` — see [LICENSE](LICENSE).
 
 ## Requirements
 
@@ -98,6 +96,10 @@ their own JVM requirement.
 5. Run `/autobreaker profile set <name>` while connected to a server to have
    AutoBreaker switch to that OneConfig profile automatically every time you join that
    address again (`/autobreaker profile clear` / `list` manage the mapping).
+6. Run `/autobreaker config export` to get a share code for your whole setup, and
+   `/autobreaker config import <code>` to apply someone else's.
+7. Enable **Performance Governor** and just keep playing — `/autobreaker tune list`
+   shows what it's learned per server so far, `/autobreaker tune forget` resets one.
 
 ## Module list
 
@@ -111,6 +113,7 @@ their own JVM requirement.
 | Minimal Particles | Forces the lowest vanilla particle setting |
 | No Entity Shadows | Disables the blob shadow under entities |
 | No View Bobbing | Disables the camera bob while walking |
+| Performance Governor | Live-adjusts render distance/particles once a second to hold a target FPS (settings: target FPS, min/max render distance) |
 
 ### Quality of Life
 | Module | Effect |
@@ -124,28 +127,18 @@ their own JVM requirement.
 |---|---|
 | Motion Blur | Blends recent frames together for a trailing blur on fast camera movement |
 
-Motion Blur started as a port of the open-source
-[motionblur-fabric-1.21.11](https://github.com/7avyy/motionblur-fabric-1.21.11) (GPL-3.0,
-originally by wavy/Noryea), reimplemented through public API only: the original reads
-its blend amount through three `@Accessor` mixins and a reflective `createBuffer` call
-so the strength can be a live slider; this version bakes one fixed blend amount into the
-post-effect pipeline (`assets/autobreakerclient/post_effect/motion_blur.json`) instead,
-needing only `MinecraftClient#getShaderLoader()` and `PostEffectProcessor#render`, both
-public. The first version of that pipeline trusted the processor's own internal "accum"
-target to keep its pixel contents between separate `render()` calls across frames — the
-one assumption in this project that couldn't be checked against the Yarn-mapped classes,
-since it's runtime behaviour, not a method signature. Comparing against
-[Polyfrost/PolyBlur](https://github.com/Polyfrost/PolyBlur) (GPL-3.0) — a much more
-mature motion blur mod for the same ecosystem — showed that assumption doesn't hold:
-PolyBlur never relies on it either, and keeps its own history framebuffer that it
-explicitly re-captures every frame. This does the same now: `MotionBlurModule` owns a
-`SimpleFramebuffer` and imports it into the post-effect's frame graph as an external
-target (`autobreakerclient:previous`) alongside vanilla's own `minecraft:main`, the same
-way `WorldRenderer` imports its own long-lived entity-outline framebuffer for its outline
-post-effect. The one mixin this project has injects at the tail of `GameRenderer#render`
-— there's no public "frame fully rendered" event — and everything it touches (the class,
-the `render` method, the shadowed `pool` field) resolved cleanly against this project's
-Yarn mappings during the build.
+Motion Blur bakes one fixed blend amount into a post-effect pipeline
+(`assets/autobreakerclient/post_effect/motion_blur.json`), needing only
+`MinecraftClient#getShaderLoader()` and `PostEffectProcessor#render`, both public.
+`MotionBlurModule` owns a `SimpleFramebuffer` history buffer and imports it into the
+post-effect's frame graph as an external target (`autobreakerclient:previous`) alongside
+vanilla's own `minecraft:main`, the same way `WorldRenderer` imports its own long-lived
+entity-outline framebuffer for its outline post-effect, and explicitly re-captures it
+every frame rather than trusting the processor's own internal "accum" target to persist
+pixel contents between frames. The one mixin this project has injects at the tail of
+`GameRenderer#render` — there's no public "frame fully rendered" event — and everything
+it touches (the class, the `render` method, the shadowed `pool` field) resolved cleanly
+against this project's Yarn mappings during the build.
 
 ### HUD
 | Module | Effect |
@@ -158,18 +151,14 @@ Yarn mappings during the build.
 | Clock | Shows the current system time |
 | Armor HUD | Shows equipped armor with durability |
 | Server Address | Shows the server you're connected to |
+| Network Doctor | Ping as a color-coded bar graph plus an average/jitter verdict ("Good, Stable" vs. a steady-but-high ping vs. one that's swinging wildly), not just a single rolling number |
 
-The Zoom, Full Bright, Auto GG, Ping, CPS, Clock, Armor HUD and Server Address modules are adapted
-from [CoralMod](https://github.com/jirmjahu/coralmod) (CC0-1.0 — public domain),
-remapped from Mojang's official mappings onto this project's Yarn mappings (e.g.
-`Options#fov()` → `GameOptions#getFov()`). CoralMod counts clicks through a custom
-mixin-based event; this project avoids mixins (see
-[the "What this is not" section](#what-this-is-not)) and instead chains onto
-`GLFW.glfwSetMouseButtonCallback` directly — it captures whatever callback Minecraft's
-own `Mouse` class already installed and always re-invokes it after recording a click, so
-vanilla input isn't affected. An earlier version polled the button state once per client
-tick (20 Hz), which silently missed fast clicks (drag-clicking, butterfly-clicking)
-whose entire press-release cycle can be shorter than one tick.
+CPS avoids mixins (see [the "What this is not" section](#what-this-is-not)) and instead
+chains onto `GLFW.glfwSetMouseButtonCallback` directly — it captures whatever callback
+Minecraft's own `Mouse` class already installed and always re-invokes it after recording
+a click, so vanilla input isn't affected. An earlier version polled the button state once
+per client tick (20 Hz), which silently missed fast clicks (drag-clicking,
+butterfly-clicking) whose entire press-release cycle can be shorter than one tick.
 
 ## License
 

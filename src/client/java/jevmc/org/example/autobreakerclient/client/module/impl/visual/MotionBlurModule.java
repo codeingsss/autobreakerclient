@@ -21,15 +21,10 @@ import java.util.Set;
  * Frame-accumulation motion blur: each frame is blended with a history buffer
  * from the previous frame, giving fast camera movement a trailing smear.
  *
- * <p>Originally written against {@link PostEffectProcessor#render(Framebuffer,
- * ObjectAllocator)}, trusting that the pipeline's own internal "accum" target
- * would keep its pixel contents between separate {@code render()} calls
- * across frames — that was the one assumption in this project that public,
- * javap-verified API couldn't confirm, since it's a runtime behaviour, not a
- * method signature. Comparing against Polyfrost's PolyBlur (GPL-3.0,
- * github.com/Polyfrost/PolyBlur) showed that assumption doesn't hold: PolyBlur
- * never relies on it either, and instead keeps its own history framebuffer
- * and explicitly re-captures it every frame. This does the same — {@link
+ * <p>{@link PostEffectProcessor#render(Framebuffer, ObjectAllocator)}'s own
+ * internal "accum" target does not reliably keep its pixel contents between
+ * separate {@code render()} calls across frames, so this keeps its own
+ * history buffer instead and explicitly re-captures it every frame. {@link
  * #history} is a {@link SimpleFramebuffer} this class owns, imported into the
  * post-effect's frame graph as the external target {@code
  * autobreakerclient:previous} alongside vanilla's own {@code minecraft:main},

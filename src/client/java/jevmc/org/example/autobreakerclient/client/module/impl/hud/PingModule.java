@@ -5,7 +5,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
 
-/** Ported from CoralMod (CC0-1.0, github.com/jirmjahu/coralmod). */
 public class PingModule extends HudModule {
     public PingModule() {
         super("Ping", "Shows your connection latency in milliseconds.");

@@ -6,6 +6,7 @@ import jevmc.org.example.autobreakerclient.client.module.impl.hud.ClockModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.CoordinatesModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.CpsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.FpsCounterModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.NetworkDoctorModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.PingModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.ServerAddressModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.WatermarkModule;
@@ -16,6 +17,7 @@ import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoClou
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoEntityShadowsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoViewBobbingModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.performance.NoVsyncModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.performance.PerformanceGovernorModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.qol.AutoGgModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.qol.FullBrightModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.qol.ZoomModule;
@@ -51,6 +53,7 @@ public final class ModuleManager {
         MODULES.add(new MinimalParticlesModule());
         MODULES.add(new NoEntityShadowsModule());
         MODULES.add(new NoViewBobbingModule());
+        MODULES.add(new PerformanceGovernorModule());
 
         MODULES.add(new ZoomModule());
         MODULES.add(new FullBrightModule());
@@ -66,6 +69,7 @@ public final class ModuleManager {
         MODULES.add(new ClockModule());
         MODULES.add(new ArmorHudModule());
         MODULES.add(new ServerAddressModule());
+        MODULES.add(new NetworkDoctorModule());
     }
 
     /**

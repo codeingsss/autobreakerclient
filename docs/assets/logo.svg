@@ -5,8 +5,8 @@
       <stop offset="100%" stop-color="#0d1420"/>
     </linearGradient>
     <linearGradient id="bolt" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6fb8ff"/>
-      <stop offset="100%" stop-color="#3c8cff"/>
+      <stop offset="0%" stop-color="#ffb366"/>
+      <stop offset="100%" stop-color="#ff8a33"/>
     </linearGradient>
   </defs>
 
@@ -24,7 +24,7 @@
            Q10 47 18 42
            L64 6
            Q72 2 80 6 Z"
-        fill="url(#bg)" stroke="#3c8cff" stroke-width="2.5"/>
+        fill="url(#bg)" stroke="#ff8a33" stroke-width="2.5"/>
 
   <!-- lightning bolt -->
   <path d="M90 32 L54 86 L76 86 L68 128 L108 70 L86 70 Z"

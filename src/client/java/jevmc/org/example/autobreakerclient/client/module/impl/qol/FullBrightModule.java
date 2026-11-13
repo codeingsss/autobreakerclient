@@ -4,10 +4,7 @@ import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
 import net.minecraft.client.MinecraftClient;
 
-/**
- * Ported from CoralMod (CC0-1.0, github.com/jirmjahu/coralmod): maxes out the
- * brightness option instead of a mixin-based gamma override.
- */
+/** Maxes out the brightness option instead of a mixin-based gamma override. */
 public class FullBrightModule extends Module {
     private double oldGamma;
 

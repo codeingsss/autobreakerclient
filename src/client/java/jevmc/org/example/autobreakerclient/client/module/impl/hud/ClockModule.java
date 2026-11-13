@@ -6,7 +6,6 @@ import net.minecraft.client.gui.DrawContext;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-/** Ported from CoralMod (CC0-1.0, github.com/jirmjahu/coralmod). */
 public class ClockModule extends HudModule {
     private static final DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
 

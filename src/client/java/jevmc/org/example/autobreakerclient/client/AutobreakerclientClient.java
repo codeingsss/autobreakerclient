@@ -1,5 +1,6 @@
 package jevmc.org.example.autobreakerclient.client;
 
+import jevmc.org.example.autobreakerclient.client.config.ConfigShareManager;
 import jevmc.org.example.autobreakerclient.client.gui.ClickGuiScreen;
 import jevmc.org.example.autobreakerclient.client.gui.HudEditScreen;
 import jevmc.org.example.autobreakerclient.client.module.Category;
@@ -38,6 +39,7 @@ public class AutobreakerclientClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ModuleManager.loadConfig());
 
         ServerProfileManager.init();
+        ConfigShareManager.init();
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndTick);
 

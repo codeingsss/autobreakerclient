@@ -5,9 +5,8 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ServerInfo;
 
 /**
- * Text-only port of CoralMod's Server Address HUD (CC0-1.0,
- * github.com/jirmjahu/coralmod) — the server favicon render is left out to
- * avoid pulling in dynamic texture registration/cleanup for a cosmetic extra.
+ * Text-only: no favicon render, to avoid pulling in dynamic texture
+ * registration/cleanup for a cosmetic extra.
  */
 public class ServerAddressModule extends HudModule {
     public ServerAddressModule() {

@@ -8,10 +8,7 @@ import net.minecraft.client.MinecraftClient;
 
 import java.util.List;
 
-/**
- * Ported from CoralMod (CC0-1.0, github.com/jirmjahu/coralmod): sends "gg" in
- * chat shortly after the server announces a round/game has ended.
- */
+/** Sends "gg" in chat shortly after the server announces a round/game has ended. */
 public class AutoGgModule extends Module {
     private static final List<String> TRIGGERS = List.of(
             "has won the game",

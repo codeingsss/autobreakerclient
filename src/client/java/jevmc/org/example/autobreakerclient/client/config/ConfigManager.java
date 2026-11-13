@@ -35,36 +35,25 @@ public final class ConfigManager {
         }
         try {
             JsonObject root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            JsonObject modulesJson = root.getAsJsonObject("modules");
-            if (modulesJson == null) {
-                return;
-            }
-            for (Module module : modules) {
-                if (!modulesJson.has(module.getName())) {
-                    continue;
-                }
-                JsonObject entry = modulesJson.getAsJsonObject(module.getName());
-                JsonObject settings = entry.getAsJsonObject("settings");
-                if (settings != null) {
-                    for (Setting<?> setting : module.getSettings()) {
-                        if (setting instanceof IntSetting intSetting && settings.has(setting.getName())) {
-                            intSetting.set(settings.get(setting.getName()).getAsInt());
-                        }
-                    }
-                }
-                if (module instanceof HudModule hudModule && entry.has("x") && entry.has("y")) {
-                    hudModule.setPosition(entry.get("x").getAsInt(), entry.get("y").getAsInt());
-                }
-                if (entry.has("enabled") && entry.get("enabled").getAsBoolean()) {
-                    module.setEnabled(true);
-                }
-            }
+            fromJson(modules, root);
         } catch (IOException | IllegalStateException e) {
             LOGGER.warn("Failed to load AutoBreaker config, using defaults", e);
         }
     }
 
     public static void save(List<Module> modules) {
+        JsonObject root = toJson(modules);
+        Path path = configPath();
+        try {
+            Files.createDirectories(path.getParent());
+            Files.writeString(path, GSON.toJson(root));
+        } catch (IOException e) {
+            LOGGER.warn("Failed to save AutoBreaker config", e);
+        }
+    }
+
+    /** Builds the same root object {@link #save} writes to disk, for reuse by config sharing. */
+    public static JsonObject toJson(List<Module> modules) {
         JsonObject root = new JsonObject();
         JsonObject modulesJson = new JsonObject();
         for (Module module : modules) {
@@ -84,13 +73,34 @@ public final class ConfigManager {
             modulesJson.add(module.getName(), entry);
         }
         root.add("modules", modulesJson);
+        return root;
+    }
 
-        Path path = configPath();
-        try {
-            Files.createDirectories(path.getParent());
-            Files.writeString(path, GSON.toJson(root));
-        } catch (IOException e) {
-            LOGGER.warn("Failed to save AutoBreaker config", e);
+    /** Applies a root object built by {@link #toJson} onto live modules, for reuse by config sharing. */
+    public static void fromJson(List<Module> modules, JsonObject root) {
+        JsonObject modulesJson = root.getAsJsonObject("modules");
+        if (modulesJson == null) {
+            return;
+        }
+        for (Module module : modules) {
+            if (!modulesJson.has(module.getName())) {
+                continue;
+            }
+            JsonObject entry = modulesJson.getAsJsonObject(module.getName());
+            JsonObject settings = entry.getAsJsonObject("settings");
+            if (settings != null) {
+                for (Setting<?> setting : module.getSettings()) {
+                    if (setting instanceof IntSetting intSetting && settings.has(setting.getName())) {
+                        intSetting.set(settings.get(setting.getName()).getAsInt());
+                    }
+                }
+            }
+            if (module instanceof HudModule hudModule && entry.has("x") && entry.has("y")) {
+                hudModule.setPosition(entry.get("x").getAsInt(), entry.get("y").getAsInt());
+            }
+            if (entry.has("enabled")) {
+                module.setEnabled(entry.get("enabled").getAsBoolean());
+            }
         }
     }
 }

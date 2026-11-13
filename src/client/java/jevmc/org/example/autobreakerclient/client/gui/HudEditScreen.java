@@ -16,8 +16,8 @@ import net.minecraft.text.Text;
  */
 public class HudEditScreen extends Screen {
     private static final int BORDER = 2;
-    private static final int COLOR_ENABLED = 0xA06FB8FF;
-    private static final int COLOR_ENABLED_HOVER = 0xFF3C8CFF;
+    private static final int COLOR_ENABLED = 0xA0FFB366;
+    private static final int COLOR_ENABLED_HOVER = 0xFFFF8A33;
     private static final int COLOR_DISABLED = 0x80888888;
 
     private HudModule dragging;
