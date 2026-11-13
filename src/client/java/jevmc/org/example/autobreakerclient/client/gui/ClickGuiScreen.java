@@ -15,12 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A fixed, centered settings window in the mould of Lunar Client's mod menu: a
- * rectangular panel with a left-hand category sidebar and a scrollable content
- * list on the right, instead of a single draggable floating box. The background
- * is blurred with the vanilla {@link DrawContext#applyBlur()} post effect and
- * every panel uses rounded corners via {@link RoundedRect} — no shaders,
- * textures or mixins required.
+ * A fixed, centered settings window: a rectangular panel with a left-hand
+ * category sidebar and a scrollable content list on the right, instead of a
+ * single draggable floating box. The background is blurred with the vanilla
+ * {@link DrawContext#applyBlur()} post effect and every panel uses rounded
+ * corners via {@link RoundedRect} — no shaders, textures or mixins required.
  */
 public class ClickGuiScreen extends Screen {
     private static final int WINDOW_WIDTH = 460;
@@ -51,6 +50,8 @@ public class ClickGuiScreen extends Screen {
     private static final int COLOR_CLOSE_HOVER = 0xFFE64C4C;
     private static final int COLOR_SCROLLBAR = 0x80FFFFFF;
     private static final int COLOR_ACCENT_TEXT = 0xFFFFB366;
+    private static final int COLOR_BORDER = 0xFFFF8A33;
+    private static final int BORDER_THICKNESS = 2;
 
     private final List<TabHit> tabHits = new ArrayList<>();
     private final List<RowHit> moduleRows = new ArrayList<>();
@@ -93,6 +94,13 @@ public class ClickGuiScreen extends Screen {
         int contentTop = panelY + HEADER_HEIGHT;
         int contentBottom = panelY + WINDOW_HEIGHT;
         int contentWidth = WINDOW_WIDTH - SIDEBAR_WIDTH;
+
+        // A single orange backdrop drawn first, slightly larger than the three panels drawn
+        // on top of it, leaves a persistent border around the whole window - including a
+        // thin ring at the seams between header/sidebar/content - so the brand reads even
+        // when every module is toggled off.
+        RoundedRect.fill(context, panelX - BORDER_THICKNESS, panelY - BORDER_THICKNESS,
+                WINDOW_WIDTH + BORDER_THICKNESS * 2, WINDOW_HEIGHT + BORDER_THICKNESS * 2, 12, COLOR_BORDER);
 
         RoundedRect.fill(context, panelX, panelY, WINDOW_WIDTH, HEADER_HEIGHT, 10, COLOR_HEADER_BG);
         RoundedRect.fill(context, panelX, contentTop, SIDEBAR_WIDTH, WINDOW_HEIGHT - HEADER_HEIGHT, 10, COLOR_SIDEBAR_BG);

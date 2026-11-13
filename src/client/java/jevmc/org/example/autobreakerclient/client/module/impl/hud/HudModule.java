@@ -13,7 +13,11 @@ public abstract class HudModule extends Module {
     private int lastHeight = 10;
 
     protected HudModule(String name, String description) {
-        super(name, description, Category.HUD, false);
+        this(name, description, false);
+    }
+
+    protected HudModule(String name, String description, boolean defaultEnabled) {
+        super(name, description, Category.HUD, defaultEnabled);
         this.x = 4;
         this.y = 4 + (nextDefaultSlot++) * 16;
     }

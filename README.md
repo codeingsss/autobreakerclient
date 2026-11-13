@@ -7,13 +7,12 @@ one-click presets for squeezing out as much FPS as vanilla's own settings allow.
 
 ## Features
 
-- **Fixed, centered click GUI** — opened with `Right Shift`, styled after Lunar Client's
-  mod menu: a rectangular window with a left-hand category sidebar (tabs, not a single
-  scrolling list) instead of a floating draggable box. The background is blurred using
-  Minecraft's own `DrawContext#applyBlur()` post effect (the same mechanism vanilla uses
-  for its pause/inventory screens), and every panel is drawn with rounded corners using
-  plain solid fills (no shaders, no textures, no mixins). Signature orange accent, both
-  here and on AutoBreaker's own OneConfig theme.
+- **Fixed, centered click GUI** — opened with `Right Shift`: a rectangular window with a
+  left-hand category sidebar (tabs, not a single scrolling list) instead of a floating
+  draggable box. The background is blurred using Minecraft's own `DrawContext#applyBlur()`
+  post effect (the same mechanism vanilla uses for its pause/inventory screens), every
+  panel is drawn with rounded corners using plain solid fills (no shaders, no textures, no
+  mixins), and the signature accent is orange throughout.
 - **Performance Governor** — a live FPS-tracking loop, not a one-shot preset: nudges
   render distance (and, if that's not enough, particles) up or down roughly once a
   second to hold a target FPS, so it keeps adapting as the scene changes instead of
@@ -38,9 +37,9 @@ one-click presets for squeezing out as much FPS as vanilla's own settings allow.
 
 AutoBreaker only flips switches that already exist in vanilla Minecraft
 (`GameOptions`/`SimpleOption`), exposed through a nicer GUI. It does not reimplement
-Sodium/Lithium-style chunk rendering, and it does not contain code taken from
-closed-source clients (Lunar Client, Badlion, etc.) — doing so would be copyright
-infringement. For real engine-level rendering gains, install this alongside:
+Sodium/Lithium-style chunk rendering, and it does not contain code taken from any
+closed-source client — doing so would be copyright infringement. For real engine-level
+rendering gains, install this alongside:
 
 - [Sodium](https://modrinth.com/mod/sodium) — rendering engine rewrite
 - [Lithium](https://modrinth.com/mod/lithium) — general game-logic optimizations

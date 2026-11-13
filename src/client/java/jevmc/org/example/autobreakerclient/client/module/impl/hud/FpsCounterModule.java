@@ -5,7 +5,7 @@ import net.minecraft.client.gui.DrawContext;
 
 public class FpsCounterModule extends HudModule {
     public FpsCounterModule() {
-        super("FPS Counter", "Shows the current frames per second.");
+        super("FPS Counter", "Shows the current frames per second.", true);
     }
 
     @Override
