@@ -84,10 +84,11 @@ their own JVM requirement.
 
 1. Drop the built jar into your `mods` folder alongside Fabric API, Fabric Language
    Kotlin, Compose Multiplatform and OneConfig (see [Requirements](#requirements)).
-2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu — it's a
-   fixed, centered window with category tabs down the left side (Performance / Quality
-   of Life / HUD). Every module is also exposed on its own OneConfig page, wired up
-   through `client/oneconfig/AutoBreakerConfig.kt`.
+2. Launch the game, press `Right Shift` in-world to open the AutoBreaker menu — a fixed,
+   centered window with category tabs down the left side (Performance / Quality of Life
+   / Visual / HUD). This is the primary, fully-themed way to use AutoBreaker; every
+   module is also exposed on its own OneConfig page for convenience, but OneConfig's own
+   UI chrome is Polyfrost's, not ours, so it won't pick up the orange theme the same way.
 3. Click a module to toggle it; drag its slider (when present) to adjust a value;
    scroll if a tab's list doesn't fit.
 4. On the HUD tab, click `Edit HUD Layout...` to drag each HUD element (enabled or not)

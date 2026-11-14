@@ -35,6 +35,10 @@ public class ClickGuiScreen extends Screen {
     private static final int CLOSE_BUTTON_SIZE = 16;
     private static final int SCROLL_STEP = 16;
 
+    private static final int TOGGLE_WIDTH = 26;
+    private static final int TOGGLE_HEIGHT = 13;
+    private static final int ACCENT_BAR_WIDTH = 3;
+
     private static final int COLOR_HEADER_BG = 0xE614141A;
     private static final int COLOR_SIDEBAR_BG = 0xE60D0D12;
     private static final int COLOR_CONTENT_BG = 0xE6101016;
@@ -43,7 +47,11 @@ public class ClickGuiScreen extends Screen {
     private static final int COLOR_TAB_SELECTED = 0xFFFF8A33;
     private static final int COLOR_ROW_IDLE = 0x30000000;
     private static final int COLOR_ROW_HOVER = 0x40FFFFFF;
-    private static final int COLOR_ROW_ENABLED = 0xFFFF8A33;
+    private static final int COLOR_ROW_ENABLED_BG = 0x20FF8A33;
+    private static final int COLOR_ROW_ACCENT_BAR = 0xFFFF8A33;
+    private static final int COLOR_TOGGLE_TRACK_OFF = 0x60FFFFFF;
+    private static final int COLOR_TOGGLE_TRACK_ON = 0xFFFF8A33;
+    private static final int COLOR_TOGGLE_THUMB = 0xFFFFFFFF;
     private static final int COLOR_SLIDER_TRACK = 0x30000000;
     private static final int COLOR_SLIDER_FILL = 0xFFFF8A33;
     private static final int COLOR_CLOSE_IDLE = 0x20FFFFFF;
@@ -149,10 +157,15 @@ public class ClickGuiScreen extends Screen {
         for (RowHit hit : moduleRows) {
             boolean enabled = hit.module.isEnabled();
             boolean hovered = contains(hit.x, hit.y, hit.w, hit.h, mouseX, mouseY) && withinContent(mouseY, contentTop, contentBottom);
-            int bg = enabled ? COLOR_ROW_ENABLED : hovered ? COLOR_ROW_HOVER : COLOR_ROW_IDLE;
+            int bg = enabled ? COLOR_ROW_ENABLED_BG : hovered ? COLOR_ROW_HOVER : COLOR_ROW_IDLE;
             RoundedRect.fill(context, hit.x, hit.y, hit.w, hit.h, 6, bg);
-            context.drawTextWithShadow(textRenderer, hit.module.getName(), hit.x + 8,
-                    hit.y + (hit.h - textRenderer.fontHeight) / 2, 0xFFFFFFFF);
+            if (enabled) {
+                RoundedRect.fill(context, hit.x, hit.y, ACCENT_BAR_WIDTH, hit.h, 2, COLOR_ROW_ACCENT_BAR);
+            }
+            int textX = hit.x + 8 + (enabled ? ACCENT_BAR_WIDTH + 2 : 0);
+            context.drawTextWithShadow(textRenderer, hit.module.getName(), textX,
+                    hit.y + (hit.h - textRenderer.fontHeight) / 2, enabled ? COLOR_ACCENT_TEXT : 0xFFFFFFFF);
+            drawToggle(context, hit.x + hit.w - TOGGLE_WIDTH - 8, hit.y + (hit.h - TOGGLE_HEIGHT) / 2, enabled);
         }
         for (SliderHit hit : sliderRows) {
             RoundedRect.fill(context, hit.x, hit.y, hit.w, hit.h, 4, COLOR_SLIDER_TRACK);
@@ -317,6 +330,14 @@ public class ClickGuiScreen extends Screen {
             // Blurriness" option) and can do so immediately on open, before our own
             // render() call. The effect is already in place either way, so ignore it.
         }
+    }
+
+    private static void drawToggle(DrawContext context, int x, int y, boolean on) {
+        RoundedRect.fill(context, x, y, TOGGLE_WIDTH, TOGGLE_HEIGHT, TOGGLE_HEIGHT / 2,
+                on ? COLOR_TOGGLE_TRACK_ON : COLOR_TOGGLE_TRACK_OFF);
+        int thumbSize = TOGGLE_HEIGHT - 4;
+        int thumbX = on ? x + TOGGLE_WIDTH - thumbSize - 2 : x + 2;
+        RoundedRect.fill(context, thumbX, y + 2, thumbSize, thumbSize, thumbSize / 2, COLOR_TOGGLE_THUMB);
     }
 
     private static void updateSlider(SliderHit hit, double mouseX) {
