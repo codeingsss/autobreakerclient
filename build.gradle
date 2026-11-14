@@ -34,146 +34,6 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
-    maven {
-        name = 'Modrinth'
-        url = 'https://api.modrinth.com/maven'
-    }
-    mavenCentral()
-}
-
-// OneConfig ships as a jar-in-jar bundle: every one of its real Fabric mods
-// (43 of them) lives nested under META-INF/jars/, each with its own
-// fabric.mod.json. A real packaged install has Fabric Loader auto-extract
-// these at launch, but Loom's dev runtime classpath doesn't replicate that
-// for third-party mods - that's the cause of the "Incompatible mods -
-// oneconfigv1 is missing" screen (oneconfigv1 is OneConfig's actual runtime).
-//
-// org.polyfrost.compose's bridge jar ("poly-compose", needed by
-// OneConfigPreLaunch for org/polyfrost/compose/render/PolyBitmap) is
-// extracted the same way. Adding it alone used to fail compileClientJava on
-// "class file for net.kyori.adventure.platform.modcommon.IdentifiedAtRuntime
-// not found" - that class turned out to live in net.kyori's
-// adventure-platform-mod-shared-fabric-repack artifact, a real Maven Central
-// coordinate that just isn't bundled as its own nested jar inside OneConfig
-// (poly-compose expects it to arrive as a normal transitive Maven
-// dependency of adventure-platform-fabric, which the manual zipTree
-// extraction above can't provide since it discards POM metadata). Pulling
-// adventure-platform-fabric as a real `include modImplementation` dependency
-// below - instead of extracting it from the bundle - resolves that
-// transitively and jar-in-jars it properly for distribution.
-def oneConfigBundleForJiJ = configurations.detachedConfiguration(
-        dependencies.create("maven.modrinth:oneconfig:${project.oneconfig_version}")
-).resolve().first()
-def composeBundleForJiJ = configurations.detachedConfiguration(
-        dependencies.create("maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}")
-).resolve().first()
-
-// Picking individual nested jars by hand (oneconfigv1, poly-compose, ...) was
-// whack-a-mole: OneConfigPreLaunch kept reaching further into OneConfig's own
-// 43-jar bundle each time one more piece was missing (PolyBitmap, then its
-// ImageIO SPI plugins, then events-1.6.2.jar for
-// org.polyfrost.oneconfig.api.event.v1.events.Event, ...). A real packaged
-// install doesn't have this problem because Fabric Loader extracts every jar
-// OneConfig's own fabric.mod.json lists under "jars" - so instead of curating
-// a subset, extract that exact same full list for Loom's dev classpath too.
-//
-// "config"/"config-impl" turned out to need the same runtime treatment as
-// everything else here too, not just compile-classpath visibility as
-// originally assumed - OneConfig's own internal
-// ThirdPartyModCategories.<clinit> touches Config$Category at class-init
-// time. They stay in compileOnlyApiJars as well purely so the Kotlin/Java
-// compile classpath wiring below doesn't need its own separate fileTree.
-//
-// Two real exceptions, handled as real Maven Central dependencies below
-// instead of being extracted here: "adventure-platform-fabric" and the four
-// "imageio-*" jars are themselves jar-in-jar containers whose own transitive
-// deps aren't separately listed as OneConfig siblings (unlike everything
-// else in the bundle) - a flat zipTree extraction captures only the one
-// outer jar and not what's nested *inside* it, so those need real dependency
-// resolution instead. See the comment above the `include modImplementation`
-// lines in the dependencies block below. hypixel-mod-api has the same
-// nested-jar shape but isn't on Maven Central, so it gets a second manual
-// extraction pass instead, right below.
-def jarInJarDir = layout.buildDirectory.dir("jarInJar").get().asFile
-// delete + copy, not sync (sync isn't available as a Project method on this
-// Gradle version) and not plain copy (which never deletes stale files from a
-// previous invocation - jars extracted by an *earlier* version of this
-// block silently kept sitting in this directory and kept getting picked back
-// up by the fileTrees below regardless of the current include patterns,
-// which was a real, confusing bug here).
-delete jarInJarDir
-jarInJarDir.mkdirs()
-copy {
-    from(zipTree(oneConfigBundleForJiJ)) {
-        include "META-INF/jars/*.jar"
-    }
-    into jarInJarDir
-    eachFile { it.path = it.name }
-    includeEmptyDirs = false
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
-}
-// hypixel-mod-api is a third jar-in-jar-of-a-jar-in-jar case, same shape as
-// adventure-platform-fabric: its own fabric.mod.json nests "mod-api-1.0.1.jar"
-// (the actual net.hypixel.modapi.HypixelModAPI class its entrypoint needs)
-// inside itself, invisible to the single-level zipTree above. Unlike
-// adventure-platform-fabric/imageio, "net.hypixel:mod-api" isn't published on
-// Maven Central, so pull this one nested jar out by hand instead.
-copy {
-    from(zipTree(fileTree(jarInJarDir) { include "hypixel-mod-api-*.jar" }.singleFile)) {
-        include "META-INF/jars/mod-api-*.jar"
-    }
-    into jarInJarDir
-    eachFile { it.path = it.name }
-    includeEmptyDirs = false
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
-}
-// OneConfig downloads 4 ambient tracks + a UI pad-loop from Polyfrost's own
-// GitHub on first boot (assets/oneconfig/sounds/external_sounds.json inside
-// oneconfigv1, SHA1-checked against each file) - patching that to list zero
-// files stops the download, but does NOT stop the 4 short click/open/close/
-// slider effects, which are bundled directly in the jar as real assets
-// (assets/oneconfig/sounds/ui/*.ogg) and fire on every interaction with
-// OneConfig's own UI, not just once at boot. assets/oneconfig/sounds.json is
-// Minecraft's own standard sound-event-registry format (same one vanilla
-// resource packs use): emptying it out entirely means every "oneconfig:ui/*"
-// and "oneconfig:ambient/*" sound ID OneConfig's UI code asks for resolves
-// to nothing, which Minecraft's sound system already handles gracefully
-// (same as any other unregistered sound - a quiet warning, not a crash) -
-// confirmed by the same logs already showing "Unable to play empty
-// soundEvent" for other unrelated missing sounds.
-def mutedSoundEvents = layout.buildDirectory.file("tmp/sounds.json").get().asFile
-mutedSoundEvents.parentFile.mkdirs()
-mutedSoundEvents.text = '{}'
-def mutedExternalSounds = layout.buildDirectory.file("tmp/external_sounds.json").get().asFile
-mutedExternalSounds.parentFile.mkdirs()
-mutedExternalSounds.text = '{"baseUrl":"https://raw.githubusercontent.com/Polyfrost/OneConfig/v1/sounds/","files":{}}'
-ant.zip(destfile: fileTree(jarInJarDir) { include "${project.minecraft_version}-fabric-*.jar" }.singleFile, update: true) {
-    zipfileset(file: mutedSoundEvents, fullpath: "assets/oneconfig/sounds.json")
-    zipfileset(file: mutedExternalSounds, fullpath: "assets/oneconfig/sounds/external_sounds.json")
-}
-// AutoBreakerTheme.kt reaches into OneConfig's own internal.ui.themes.UITheme
-// (needs internal-*.jar) and androidx.compose.ui.graphics.Color (needs these
-// compose-multiplatform jars - same jar-in-jar-bundle shape as OneConfig,
-// just never needed by our own compile classpath before now; Fabric Loader
-// itself already resolves compose-multiplatform's nested jars fine at actual
-// runtime, confirmed by OneConfig's own Compose-rendered UI working in
-// runClient without any of this, so these are compile-only).
-copy {
-    from(zipTree(composeBundleForJiJ)) {
-        include "META-INF/jars/ui-desktop-*.jar", "META-INF/jars/ui-graphics-desktop-*.jar",
-                "META-INF/jars/ui-text-desktop-*.jar", "META-INF/jars/ui-unit-desktop-*.jar",
-                "META-INF/jars/ui-util-desktop-*.jar", "META-INF/jars/runtime-desktop-*.jar"
-    }
-    into jarInJarDir
-    eachFile { it.path = it.name }
-    includeEmptyDirs = false
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
-}
-def compileOnlyApiJars = fileTree(jarInJarDir) { include "config-*.jar", "internal-*.jar", "ui-*-desktop-*.jar", "runtime-desktop-*.jar" }
-def runtimeModJars = fileTree(jarInJarDir) {
-    include "*.jar"
-    exclude "ui-*-desktop-*.jar", "runtime-desktop-*.jar" // compile-only, see compileOnlyApiJars comment above
-    exclude "adventure-platform-fabric-*.jar", "imageio-*.jar" // resolved as real deps instead, see below
 }
 
 dependencies {
@@ -183,28 +43,10 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // Only for our own Kotlin sources (client/gui/*.kt) - we don't declare
+    // any Kotlin class as a Fabric entrypoint, so this is purely "provide the
+    // Kotlin runtime jars", not anything Fabric Loader itself needs to adapt.
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
-    modImplementation "maven.modrinth:compose-multiplatform:${project.compose_multiplatform_version}"
-    modImplementation "maven.modrinth:oneconfig:${project.oneconfig_version}"
-    // poly-compose (extracted above) needs this exact version on the
-    // classpath; resolving it as a real Maven Central coordinate (rather
-    // than extracting it from the bundle) pulls in its transitive deps too
-    // (adventure-api, adventure-key, adventure-platform-mod-shared-fabric-repack).
-    include modImplementation("net.kyori:adventure-platform-fabric:${project.adventure_platform_fabric_version}")
-    // PolyBitmap registers these ImageIO SPI plugins at startup
-    // (javax.imageio.spi.ImageReaderSpi for BMP/WebP). Loom's `include`
-    // bundles only the exact coordinate given to it, not its transitive
-    // deps (confirmed: the built jar's META-INF/jars only had the two
-    // directly-included jars below, not imageio-core/imageio-metadata that
-    // webp/bmp both need at runtime) - so those have to be listed explicitly
-    // too, same as webp/bmp themselves.
-    include modImplementation("com.twelvemonkeys.imageio:imageio-webp:${project.twelvemonkeys_imageio_version}")
-    include modImplementation("com.twelvemonkeys.imageio:imageio-bmp:${project.twelvemonkeys_imageio_version}")
-    include modImplementation("com.twelvemonkeys.imageio:imageio-core:${project.twelvemonkeys_imageio_version}")
-    include modImplementation("com.twelvemonkeys.imageio:imageio-metadata:${project.twelvemonkeys_imageio_version}")
-    runtimeModJars.files.each { jarFile ->
-        modImplementation files(jarFile)
-    }
 }
 
 processResources {
@@ -222,20 +64,6 @@ processResources {
 
 kotlin {
     jvmToolchain(21)
-}
-
-// Neither javac nor kotlinc can see into a jar nested inside another jar
-// either, so compileOnlyApiJars (extracted above) needs to be on the compile
-// classpath for the real org.polyfrost.oneconfig.api.config.v1.* classes
-// (Tree, Property, Config, ConfigEntrypoint) to resolve.
-afterEvaluate {
-    sourceSets.client.compileClasspath += compileOnlyApiJars
-    tasks.named('compileClientJava').configure {
-        classpath += compileOnlyApiJars
-    }
-    tasks.named('compileClientKotlin', org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configure {
-        libraries.from(compileOnlyApiJars)
-    }
 }
 
 def targetJavaVersion = 21

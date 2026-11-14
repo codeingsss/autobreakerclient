@@ -19,9 +19,6 @@
     ],
     "main": [
       "jevmc.org.example.autobreakerclient.Autobreakerclient"
-    ],
-    "oneconfig:config": [
-      "jevmc.org.example.autobreakerclient.client.oneconfig.AutoBreakerConfigEntrypoint"
     ]
   },
   "mixins": [
@@ -35,8 +32,6 @@
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
     "fabric-language-kotlin": "*",
-    "compose-multiplatform": "*",
-    "oneconfig": "*",
     "minecraft": "${minecraft_version}"
   }
 }

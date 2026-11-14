@@ -7,7 +7,6 @@ import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
 import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.HudModule;
-import jevmc.org.example.autobreakerclient.client.oneconfig.AutoBreakerThemeKt;
 import jevmc.org.example.autobreakerclient.client.profile.ServerProfileManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -22,10 +21,7 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class AutobreakerclientClient implements ClientModInitializer {
-    private static final int THEME_REASSERT_INTERVAL_TICKS = 100;
-
     private static KeyBinding openGuiKey;
-    private int themeReassertTicks;
 
     @Override
     public void onInitializeClient() {
@@ -55,17 +51,6 @@ public class AutobreakerclientClient implements ClientModInitializer {
             if (client.currentScreen == null) {
                 client.setScreen(new ClickGuiScreen());
             }
-        }
-
-        // OneConfig's own theme restore only runs once its UI actually
-        // composes for the first time, which happens later than - and can
-        // overwrite - the activation already done during config-entrypoint
-        // registration (see AutoBreakerTheme.kt). Reasserting it periodically
-        // instead of relying on exact load order converges back to orange
-        // within a few seconds of any such revert.
-        if (++themeReassertTicks >= THEME_REASSERT_INTERVAL_TICKS) {
-            themeReassertTicks = 0;
-            AutoBreakerThemeKt.activateAutoBreakerOneConfigTheme();
         }
     }
 

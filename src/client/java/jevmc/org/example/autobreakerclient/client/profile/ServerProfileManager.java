@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import jevmc.org.example.autobreakerclient.client.config.ProfileManager;
+import jevmc.org.example.autobreakerclient.client.module.Module;
 import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -15,7 +17,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.text.Text;
-import org.polyfrost.oneconfig.api.config.v1.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,10 +28,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Lets a server address pick its own OneConfig profile: run
- * {@code /autobreaker profile set <name>} while connected to a server and
- * that server's address is remembered against the given profile. The next
- * time you join that address, {@link ConfigManager#openProfile(String)}
+ * Lets a server address pick its own AutoBreaker profile (see
+ * {@link ProfileManager}): run {@code /autobreaker profile set <name>} while
+ * connected to a server and that server's address is remembered against the
+ * given profile. The next time you join that address, {@link ProfileManager#load}
  * switches to it automatically.
  *
  * <p>Also quietly learns a per-server render distance: if the Performance
@@ -68,10 +69,11 @@ public final class ServerProfileManager {
 
             String profile = addressToProfile.get(address);
             if (profile != null) {
-                if (!ConfigManager.profiles().contains(profile)) {
+                if (!ProfileManager.exists(profile)) {
                     LOGGER.warn("Server profile mapping for {} points at missing profile '{}'", address, profile);
-                } else if (!profile.equals(ConfigManager.activeProfile())) {
-                    ConfigManager.openProfile(profile);
+                } else {
+                    ProfileManager.load(profile);
+                    ModuleManager.saveConfig();
                 }
             }
 
@@ -89,7 +91,7 @@ public final class ServerProfileManager {
                 return;
             }
             boolean governorActive = ModuleManager.getByName(PERFORMANCE_GOVERNOR)
-                    .map(jevmc.org.example.autobreakerclient.client.module.Module::isEnabled)
+                    .map(Module::isEnabled)
                     .orElse(false);
             if (!governorActive) {
                 return;
@@ -103,19 +105,58 @@ public final class ServerProfileManager {
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            LiteralArgumentBuilder<FabricClientCommandSource> profileSet = ClientCommandManager.literal("set")
-                    .then(ClientCommandManager.argument("profile", StringArgumentType.greedyString())
+            LiteralArgumentBuilder<FabricClientCommandSource> profileSave = ClientCommandManager.literal("save")
+                    .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
                             .executes(ctx -> {
-                                String profile = StringArgumentType.getString(ctx, "profile");
+                                String name = StringArgumentType.getString(ctx, "name");
+                                ProfileManager.save(name);
+                                ctx.getSource().sendFeedback(Text.literal("Saved the current setup as profile \"" + name + "\"."));
+                                return 1;
+                            }));
+
+            LiteralArgumentBuilder<FabricClientCommandSource> profileLoad = ClientCommandManager.literal("load")
+                    .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                String name = StringArgumentType.getString(ctx, "name");
+                                if (!ProfileManager.load(name)) {
+                                    ctx.getSource().sendError(Text.literal("No profile named \"" + name + "\"."));
+                                    return 0;
+                                }
+                                ModuleManager.saveConfig();
+                                ctx.getSource().sendFeedback(Text.literal("Loaded profile \"" + name + "\"."));
+                                return 1;
+                            }));
+
+            LiteralArgumentBuilder<FabricClientCommandSource> profileDelete = ClientCommandManager.literal("delete")
+                    .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                String name = StringArgumentType.getString(ctx, "name");
+                                if (!ProfileManager.delete(name)) {
+                                    ctx.getSource().sendError(Text.literal("No profile named \"" + name + "\"."));
+                                    return 0;
+                                }
+                                ctx.getSource().sendFeedback(Text.literal("Deleted profile \"" + name + "\"."));
+                                return 1;
+                            }));
+
+            LiteralArgumentBuilder<FabricClientCommandSource> profileSet = ClientCommandManager.literal("set")
+                    .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                String name = StringArgumentType.getString(ctx, "name");
                                 String address = currentServerAddress(MinecraftClient.getInstance());
                                 if (address == null) {
                                     ctx.getSource().sendError(Text.literal("Not connected to a server."));
                                     return 0;
                                 }
-                                addressToProfile.put(address, profile);
+                                if (!ProfileManager.exists(name)) {
+                                    ctx.getSource().sendError(Text.literal(
+                                            "No profile named \"" + name + "\" - save one first with /autobreaker profile save " + name));
+                                    return 0;
+                                }
+                                addressToProfile.put(address, name);
                                 save();
                                 ctx.getSource().sendFeedback(Text.literal(
-                                        address + " will now load OneConfig profile \"" + profile + "\"."));
+                                        address + " will now load profile \"" + name + "\"."));
                                 return 1;
                             }));
 
@@ -134,12 +175,16 @@ public final class ServerProfileManager {
 
             LiteralArgumentBuilder<FabricClientCommandSource> profileList = ClientCommandManager.literal("list")
                     .executes(ctx -> {
-                        if (addressToProfile.isEmpty()) {
-                            ctx.getSource().sendFeedback(Text.literal("No server profile mappings set."));
-                            return 1;
+                        var saved = ProfileManager.list();
+                        if (saved.isEmpty()) {
+                            ctx.getSource().sendFeedback(Text.literal("No saved profiles yet - /autobreaker profile save <name>."));
+                        } else {
+                            ctx.getSource().sendFeedback(Text.literal("Saved profiles: " + String.join(", ", saved)));
                         }
-                        addressToProfile.forEach((address, profile) ->
-                                ctx.getSource().sendFeedback(Text.literal(address + " -> " + profile)));
+                        if (!addressToProfile.isEmpty()) {
+                            addressToProfile.forEach((address, profile) ->
+                                    ctx.getSource().sendFeedback(Text.literal(address + " -> " + profile)));
+                        }
                         return 1;
                     });
 
@@ -171,6 +216,9 @@ public final class ServerProfileManager {
 
             dispatcher.register(ClientCommandManager.literal("autobreaker")
                     .then(ClientCommandManager.literal("profile")
+                            .then(profileSave)
+                            .then(profileLoad)
+                            .then(profileDelete)
                             .then(profileSet)
                             .then(profileClear)
                             .then(profileList))
