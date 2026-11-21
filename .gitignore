@@ -19,3 +19,7 @@ Thumbs.db
 
 # Claude Code harness state
 .claude/
+
+# JVM crash dumps from killed dev-client runs
+hs_err_pid*.log
+replay_pid*.log
