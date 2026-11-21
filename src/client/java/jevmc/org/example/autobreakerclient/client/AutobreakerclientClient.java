@@ -9,19 +9,31 @@ import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.HudModule;
 import jevmc.org.example.autobreakerclient.client.profile.ServerProfileManager;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class AutobreakerclientClient implements ClientModInitializer {
     private static KeyBinding openGuiKey;
+
+    /**
+     * Set by {@code /autobreaker gui} and consumed on the next client tick -
+     * the command body runs while the chat screen is still being torn down,
+     * so opening a screen there would just get replaced when chat closes.
+     * The tick handler below already opens the GUI correctly, so reuse it.
+     */
+    private static volatile boolean guiOpenRequested;
 
     @Override
     public void onInitializeClient() {
@@ -41,16 +53,40 @@ public class AutobreakerclientClient implements ClientModInitializer {
         ServerProfileManager.init();
         ConfigShareManager.init();
 
+        // Right Shift can be taken by another mod (or just rebound), which
+        // leaves no way into the menu at all, so register a command that
+        // opens exactly the same screen.
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                dispatcher.register(ClientCommandManager.literal("autobreaker")
+                        .then(ClientCommandManager.literal("gui")
+                                .executes(ctx -> {
+                                    guiOpenRequested = true;
+                                    return 1;
+                                }))));
+
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            if (client.player == null) {
+                return;
+            }
+            client.player.sendMessage(Text.literal(
+                    "AutoBreaker ready - press Right Shift or run /autobreaker gui to open the menu."), false);
+        });
+
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndTick);
 
         HudElementRegistry.addLast(Identifier.of("autobreakerclient", "hud"), this::renderHud);
     }
 
     private void onEndTick(MinecraftClient client) {
+        boolean openByKey = false;
         while (openGuiKey.wasPressed()) {
-            if (client.currentScreen == null) {
-                client.setScreen(new ClickGuiScreen());
-            }
+            openByKey = true;
+        }
+        boolean openByCommand = guiOpenRequested;
+        guiOpenRequested = false;
+
+        if ((openByKey || openByCommand) && client.currentScreen == null) {
+            client.setScreen(new ClickGuiScreen());
         }
     }
 
