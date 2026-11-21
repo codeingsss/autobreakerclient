@@ -13,9 +13,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * There's no public event for "a screen just finished rendering" either, so
  * this injects at the tail of {@link TitleScreen#render} the same way
- * {@link MotionBlurMixin} does for {@code GameRenderer#render} - drawing an
- * AutoBreaker watermark and a faint orange wash over vanilla's own title
- * screen without touching its panorama, buttons or layout at all.
+ * {@link MotionBlurMixin} does for {@code GameRenderer#render} - drawing just
+ * an AutoBreaker watermark in the corner, without touching vanilla's
+ * panorama, buttons or layout at all. An earlier version also washed the
+ * whole screen in translucent orange, which was far too much.
  *
  * <p>{@code width}/{@code height} are declared on {@link Screen}, not on
  * {@link TitleScreen} itself, and Mixin's {@code @Shadow} only resolves
@@ -29,8 +30,6 @@ public class TitleScreenMixin {
     @Inject(method = "render", at = @At("TAIL"))
     private void autobreakerclient$brandTitleScreen(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         Screen self = (Screen) (Object) this;
-        context.fill(0, 0, self.width, self.height, 0x14FF8A33);
-
         MinecraftClient client = MinecraftClient.getInstance();
         Text text = Text.literal("AutoBreaker");
         int textWidth = client.textRenderer.getWidth(text);
