@@ -34,6 +34,10 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+    }
 }
 
 dependencies {
@@ -47,6 +51,15 @@ dependencies {
     // any Kotlin class as a Fabric entrypoint, so this is purely "provide the
     // Kotlin runtime jars", not anything Fabric Loader itself needs to adapt.
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
+
+    // Bundled straight into the output jar so one download gives the real
+    // engine-level FPS win, the way Lunar/Feather-style clients ship. Both
+    // are LGPL-3.0, which permits redistributing them unmodified alongside
+    // this GPL-3.0 project - see the credits section in the README. Fabric
+    // Loader de-duplicates nested jars against standalone installs, so a
+    // user who already has their own Sodium keeps whichever is newer.
+    include modImplementation("maven.modrinth:sodium:${project.sodium_version}")
+    include modImplementation("maven.modrinth:lithium:${project.lithium_version}")
 }
 
 processResources {
