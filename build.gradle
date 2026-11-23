@@ -60,6 +60,11 @@ dependencies {
     // user who already has their own Sodium keeps whichever is newer.
     include modImplementation("maven.modrinth:sodium:${project.sodium_version}")
     include modImplementation("maven.modrinth:lithium:${project.lithium_version}")
+
+    // The settings screen is built with YACL rather than hand-drawn, so it
+    // gets a maintained, consistent look instead of our own solid fills.
+    // Bundled too (LGPL-3.0) so users still only install one jar.
+    include modImplementation("maven.modrinth:yacl:${project.yacl_version}")
 }
 
 processResources {

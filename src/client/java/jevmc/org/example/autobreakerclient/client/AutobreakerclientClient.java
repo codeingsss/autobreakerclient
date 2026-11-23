@@ -1,7 +1,8 @@
 package jevmc.org.example.autobreakerclient.client;
 
 import jevmc.org.example.autobreakerclient.client.config.ConfigShareManager;
-import jevmc.org.example.autobreakerclient.client.gui.ClickGuiScreen;
+import dev.isxander.yacl3.gui.YACLScreen;
+import jevmc.org.example.autobreakerclient.client.gui.AutoBreakerConfigScreen;
 import jevmc.org.example.autobreakerclient.client.gui.HudEditScreen;
 import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
@@ -86,13 +87,13 @@ public class AutobreakerclientClient implements ClientModInitializer {
         guiOpenRequested = false;
 
         if ((openByKey || openByCommand) && client.currentScreen == null) {
-            client.setScreen(new ClickGuiScreen());
+            client.setScreen(AutoBreakerConfigScreen.INSTANCE.create(null));
         }
     }
 
     private void renderHud(net.minecraft.client.gui.DrawContext context, net.minecraft.client.render.RenderTickCounter tickCounter) {
         Screen screen = MinecraftClient.getInstance().currentScreen;
-        if (screen instanceof ClickGuiScreen || screen instanceof HudEditScreen) {
+        if (screen instanceof YACLScreen || screen instanceof HudEditScreen) {
             return;
         }
         for (Module module : ModuleManager.getModules(Category.HUD)) {
