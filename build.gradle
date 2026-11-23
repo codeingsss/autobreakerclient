@@ -61,10 +61,19 @@ dependencies {
     include modImplementation("maven.modrinth:sodium:${project.sodium_version}")
     include modImplementation("maven.modrinth:lithium:${project.lithium_version}")
 
-    // The settings screen is built with YACL rather than hand-drawn, so it
-    // gets a maintained, consistent look instead of our own solid fills.
-    // Bundled too (LGPL-3.0) so users still only install one jar.
-    include modImplementation("maven.modrinth:yacl:${project.yacl_version}")
+    // No config-UI library: the menu (client/gui/ModMenuScreen.kt) is drawn
+    // from Theme.kt's primitives. YACL was tried here and dropped - its stock
+    // list layout can't produce the category rail and per-module card grid this
+    // menu is meant to look like.
+}
+
+// `./gradlew runClient -PuiPreview` launches the game, opens the mod menu,
+// screenshots it into run/autobreaker-menu.png and quits - so menu changes can
+// be checked by looking at them. See client/dev/UiPreviewCapture.java.
+tasks.named('runClient') {
+    if (project.hasProperty('uiPreview')) {
+        jvmArgs '-Dautobreaker.uiPreview=true'
+    }
 }
 
 processResources {

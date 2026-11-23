@@ -1,9 +1,9 @@
 package jevmc.org.example.autobreakerclient.client;
 
 import jevmc.org.example.autobreakerclient.client.config.ConfigShareManager;
-import dev.isxander.yacl3.gui.YACLScreen;
-import jevmc.org.example.autobreakerclient.client.gui.AutoBreakerConfigScreen;
+import jevmc.org.example.autobreakerclient.client.dev.UiPreviewCapture;
 import jevmc.org.example.autobreakerclient.client.gui.HudEditScreen;
+import jevmc.org.example.autobreakerclient.client.gui.ModMenuScreen;
 import jevmc.org.example.autobreakerclient.client.module.Category;
 import jevmc.org.example.autobreakerclient.client.module.Module;
 import jevmc.org.example.autobreakerclient.client.module.ModuleManager;
@@ -53,6 +53,7 @@ public class AutobreakerclientClient implements ClientModInitializer {
 
         ServerProfileManager.init();
         ConfigShareManager.init();
+        UiPreviewCapture.init();
 
         // Right Shift can be taken by another mod (or just rebound), which
         // leaves no way into the menu at all, so register a command that
@@ -87,13 +88,13 @@ public class AutobreakerclientClient implements ClientModInitializer {
         guiOpenRequested = false;
 
         if ((openByKey || openByCommand) && client.currentScreen == null) {
-            client.setScreen(AutoBreakerConfigScreen.INSTANCE.create(null));
+            client.setScreen(new ModMenuScreen());
         }
     }
 
     private void renderHud(net.minecraft.client.gui.DrawContext context, net.minecraft.client.render.RenderTickCounter tickCounter) {
         Screen screen = MinecraftClient.getInstance().currentScreen;
-        if (screen instanceof YACLScreen || screen instanceof HudEditScreen) {
+        if (screen instanceof ModMenuScreen || screen instanceof HudEditScreen) {
             return;
         }
         for (Module module : ModuleManager.getModules(Category.HUD)) {
