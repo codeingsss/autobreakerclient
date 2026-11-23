@@ -35,15 +35,15 @@ one-click presets for squeezing out as much FPS as vanilla's own settings allow.
 
 ## What this is *not*
 
-AutoBreaker only flips switches that already exist in vanilla Minecraft
-(`GameOptions`/`SimpleOption`), exposed through a nicer GUI. It does not reimplement
-Sodium/Lithium-style chunk rendering, and it does not contain code taken from any
-closed-source client — doing so would be copyright infringement. For real engine-level
-rendering gains, install this alongside:
+AutoBreaker's own modules only flip switches that already exist in vanilla Minecraft
+(`GameOptions`/`SimpleOption`), exposed through a nicer GUI — it does not reimplement
+chunk rendering itself, and it contains no code taken from any closed-source client.
 
-- [Sodium](https://modrinth.com/mod/sodium) — rendering engine rewrite
-- [Lithium](https://modrinth.com/mod/lithium) — general game-logic optimizations
-- [Iris](https://modrinth.com/mod/iris) — shader support that stays compatible with Sodium
+The real engine-level gains come from **Sodium and Lithium, which ship inside the
+AutoBreaker jar** (see [Credits](#credits)) — the same way Lunar/Feather-style clients
+bundle their optimizations, so one download gets you both the fast renderer and the
+client features. You can still add [Iris](https://modrinth.com/mod/iris) separately for
+shaders; it stays compatible with the bundled Sodium.
 
 How high your FPS actually goes depends on your hardware and the scene (render
 distance, entity count, shaders) — "2000 FPS" is realistic in a simple scene on a
@@ -157,6 +157,18 @@ a click, so vanilla input isn't affected. An earlier version polled the button s
 per client tick (20 Hz), which silently missed fast clicks (drag-clicking,
 butterfly-clicking) whose entire press-release cycle can be shorter than one tick.
 
+## Credits
+
+AutoBreaker bundles these unmodified, under the terms of their licenses:
+
+| Bundled mod | License | What it does here |
+|---|---|---|
+| [Sodium](https://modrinth.com/mod/sodium) | LGPL-3.0 | Rendering engine rewrite — the bulk of the FPS win |
+| [Lithium](https://modrinth.com/mod/lithium) | LGPL-3.0 | General game-logic/tick optimizations |
+
+Neither is modified; both are embedded via Fabric's standard jar-in-jar mechanism and
+remain under their own licenses. All credit for them goes to their authors.
+
 ## License
 
-GPL-3.0-only — see [LICENSE](LICENSE).
+AutoBreaker's own code is GPL-3.0-only — see [LICENSE](LICENSE).
