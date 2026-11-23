@@ -10,48 +10,53 @@ import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
-private const val WINDOW_WIDTH = 460
-private const val WINDOW_HEIGHT = 380
-private const val HEADER_HEIGHT = 32
-private const val SIDEBAR_WIDTH = 130
-private const val TAB_HEIGHT = 26
-private const val TAB_SPACING = 4
-private const val CONTENT_PADDING = 10
-private const val ROW_HEIGHT = 20
+private const val WINDOW_WIDTH = 480
+private const val WINDOW_HEIGHT = 404
+private const val HEADER_HEIGHT = 34
+private const val SIDEBAR_WIDTH = 142
+private const val FOOTER_HEIGHT = 26
+private const val TAB_HEIGHT = 28
+private const val TAB_SPACING = 2
+private const val CONTENT_PADDING = 12
+private const val ROW_HEIGHT = 24
 private const val ROW_SPACING = 4
-private const val SLIDER_HEIGHT = 14
-private const val CLOSE_BUTTON_SIZE = 16
-private const val SCROLL_STEP = 16
+private const val SLIDER_HEIGHT = 16
+private const val SLIDER_INDENT = 14
+private const val CLOSE_BUTTON_SIZE = 18
+private const val SCROLL_STEP = 18
 
 private const val TOGGLE_WIDTH = 26
 private const val TOGGLE_HEIGHT = 13
 private const val ACCENT_BAR_WIDTH = 3
 
-private const val COLOR_HEADER_BG = 0xE614141A.toInt()
-private const val COLOR_SIDEBAR_BG = 0xE60D0D12.toInt()
-private const val COLOR_CONTENT_BG = 0xE6101016.toInt()
-private const val COLOR_TAB_IDLE = 0x00000000
-private const val COLOR_TAB_HOVER = 0x30FFFFFF
-private const val COLOR_TAB_SELECTED = 0xFFFF8A33.toInt()
-private const val COLOR_ROW_IDLE = 0x30000000
-private const val COLOR_ROW_HOVER = 0x40FFFFFF
-private const val COLOR_ROW_ENABLED_BG = 0x20FF8A33
-private const val COLOR_ROW_ACCENT_BAR = 0xFFFF8A33.toInt()
-private const val COLOR_TOGGLE_TRACK_OFF = 0x60FFFFFF
-private const val COLOR_TOGGLE_TRACK_ON = 0xFFFF8A33.toInt()
-private const val COLOR_TOGGLE_THUMB = 0xFFFFFFFF.toInt()
-private const val COLOR_SLIDER_TRACK = 0x30000000
-private const val COLOR_SLIDER_FILL = 0xFFFF8A33.toInt()
-private const val COLOR_CLOSE_IDLE = 0x20FFFFFF
-private const val COLOR_CLOSE_HOVER = 0xFFE64C4C.toInt()
-private const val COLOR_SCROLLBAR = 0x80FFFFFF.toInt()
-private const val COLOR_ACCENT_TEXT = 0xFFFFB366.toInt()
-private const val COLOR_BORDER = 0xFFFF8A33.toInt()
-private const val BORDER_THICKNESS = 2
-private const val COLOR_WHITE = 0xFFFFFFFF.toInt()
+// Neutral near-black surfaces; the orange is reserved for state, so it reads as
+// an accent instead of tinting the whole window.
+private const val COLOR_OUTLINE = 0xFF2C2C35.toInt()
+private const val COLOR_HEADER_BG = 0xF21B1B21.toInt()
+private const val COLOR_SIDEBAR_BG = 0xF2131317.toInt()
+private const val COLOR_CONTENT_BG = 0xF218181D.toInt()
+private const val COLOR_FOOTER_BG = 0xF2141419.toInt()
+
+private const val ACCENT = 0xFFFF8A33.toInt()
+private const val ACCENT_SOFT = 0xFFFFB366.toInt()
+private const val ACCENT_FAINT = 0x26FF8A33
+
+private const val TEXT_PRIMARY = 0xFFF0F0F3.toInt()
+private const val TEXT_DIM = 0xFF8C8C98.toInt()
+private const val TEXT_FAINT = 0xFF63636E.toInt()
+
+private const val COLOR_TAB_HOVER = 0x14FFFFFF
+private const val COLOR_TAB_SELECTED = 0x1FFFFFFF
+private const val COLOR_ROW_BG = 0xFF1F1F26.toInt()
+private const val COLOR_ROW_HOVER = 0xFF272730.toInt()
+private const val COLOR_TOGGLE_OFF = 0xFF3C3C47.toInt()
+private const val COLOR_TOGGLE_THUMB = 0xFFF2F2F5.toInt()
+private const val COLOR_SLIDER_TRACK = 0xFF15151A.toInt()
+private const val COLOR_SLIDER_FILL = 0x59FF8A33
+private const val COLOR_CLOSE_HOVER = 0xFFE05A4A.toInt()
+private const val COLOR_SCROLLBAR = 0x40FFFFFF
 
 private data class TabHit(val category: Category, val x: Int, val y: Int, val w: Int, val h: Int)
 private data class ButtonHit(val x: Int, val y: Int, val w: Int, val h: Int)
@@ -59,11 +64,11 @@ private data class RowHit(val module: Module, val x: Int, val y: Int, val w: Int
 private data class SliderHit(val setting: IntSetting, val x: Int, val y: Int, val w: Int, val h: Int)
 
 /**
- * A fixed, centered settings window: a rectangular panel with a left-hand
- * category sidebar and a scrollable content list on the right, instead of a
- * single draggable floating box. The background is blurred with the vanilla
- * [DrawContext.applyBlur] post effect and every panel uses rounded corners
- * via [RoundedRect] - no shaders, textures or mixins required.
+ * A fixed, centered settings window: category sidebar on the left, scrollable
+ * module list on the right, and a footer that explains whatever is hovered.
+ * Backdrop blur comes from the vanilla [DrawContext.applyBlur] post effect and
+ * every panel is a plain solid fill via [RoundedRect] - no shaders, textures
+ * or extra rendering libraries.
  */
 class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
     private val tabHits = mutableListOf<TabHit>()
@@ -77,6 +82,7 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
     private var selectedCategory: Category = Category.values()[0]
     private var scrollOffset = 0
     private var draggingSlider: IntSetting? = null
+    private var hoveredDescription: String? = null
 
     override fun shouldPause() = false
 
@@ -91,57 +97,48 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
             panelY = (height - WINDOW_HEIGHT) / 2
             positioned = true
         }
-
+        hoveredDescription = null
         tryApplyBlur(context)
 
         val contentX = panelX + SIDEBAR_WIDTH
         val contentTop = panelY + HEADER_HEIGHT
-        val contentBottom = panelY + WINDOW_HEIGHT
+        val footerTop = panelY + WINDOW_HEIGHT - FOOTER_HEIGHT
         val contentWidth = WINDOW_WIDTH - SIDEBAR_WIDTH
+        val bodyHeight = WINDOW_HEIGHT - HEADER_HEIGHT
 
-        // A single orange backdrop drawn first, slightly larger than the three panels drawn
-        // on top of it, leaves a persistent border around the whole window - including a
-        // thin ring at the seams between header/sidebar/content - so the brand reads even
-        // when every module is toggled off.
-        RoundedRect.fill(
-            context, panelX - BORDER_THICKNESS, panelY - BORDER_THICKNESS,
-            WINDOW_WIDTH + BORDER_THICKNESS * 2, WINDOW_HEIGHT + BORDER_THICKNESS * 2, 12, COLOR_BORDER
-        )
+        // One subtle outline behind everything instead of a thick orange frame.
+        RoundedRect.fill(context, panelX - 1, panelY - 1, WINDOW_WIDTH + 2, WINDOW_HEIGHT + 2, 9, COLOR_OUTLINE)
+        RoundedRect.fill(context, panelX, panelY, WINDOW_WIDTH, HEADER_HEIGHT, 8, COLOR_HEADER_BG)
+        RoundedRect.fill(context, panelX, contentTop, SIDEBAR_WIDTH, bodyHeight, 8, COLOR_SIDEBAR_BG)
+        RoundedRect.fill(context, contentX, contentTop, contentWidth, bodyHeight, 8, COLOR_CONTENT_BG)
+        RoundedRect.fill(context, contentX, footerTop, contentWidth, FOOTER_HEIGHT, 8, COLOR_FOOTER_BG)
+        // Hairline of accent under the header - the only always-on orange.
+        context.fill(panelX + 1, contentTop - 1, panelX + WINDOW_WIDTH - 1, contentTop, ACCENT)
 
-        RoundedRect.fill(context, panelX, panelY, WINDOW_WIDTH, HEADER_HEIGHT, 10, COLOR_HEADER_BG)
-        RoundedRect.fill(context, panelX, contentTop, SIDEBAR_WIDTH, WINDOW_HEIGHT - HEADER_HEIGHT, 10, COLOR_SIDEBAR_BG)
-        RoundedRect.fill(context, contentX, contentTop, contentWidth, WINDOW_HEIGHT - HEADER_HEIGHT, 10, COLOR_CONTENT_BG)
-
-        context.drawCenteredTextWithShadow(
-            textRenderer, title, panelX + WINDOW_WIDTH / 2,
-            panelY + (HEADER_HEIGHT - textRenderer.fontHeight) / 2, COLOR_WHITE
-        )
-
-        val closeX = panelX + WINDOW_WIDTH - CONTENT_PADDING - CLOSE_BUTTON_SIZE
-        val closeY = panelY + (HEADER_HEIGHT - CLOSE_BUTTON_SIZE) / 2
-        val closeHovered = contains(closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, mouseX.toDouble(), mouseY.toDouble())
-        RoundedRect.fill(context, closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 4, if (closeHovered) COLOR_CLOSE_HOVER else COLOR_CLOSE_IDLE)
-        context.drawCenteredTextWithShadow(
-            textRenderer, Text.literal("x"), closeX + CLOSE_BUTTON_SIZE / 2,
-            closeY + (CLOSE_BUTTON_SIZE - textRenderer.fontHeight) / 2, COLOR_WHITE
-        )
+        drawHeader(context, mouseX, mouseY)
 
         layoutTabs()
         for (tab in tabHits) {
             val selected = tab.category == selectedCategory
             val hovered = contains(tab.x, tab.y, tab.w, tab.h, mouseX.toDouble(), mouseY.toDouble())
-            val bg = if (selected) COLOR_TAB_SELECTED else if (hovered) COLOR_TAB_HOVER else COLOR_TAB_IDLE
-            if (bg != COLOR_TAB_IDLE) {
-                RoundedRect.fill(context, tab.x, tab.y, tab.w, tab.h, 6, bg)
+            if (selected || hovered) {
+                RoundedRect.fill(
+                    context, tab.x, tab.y, tab.w, tab.h, 5,
+                    if (selected) COLOR_TAB_SELECTED else COLOR_TAB_HOVER
+                )
+            }
+            if (selected) {
+                RoundedRect.fill(context, tab.x, tab.y + 5, ACCENT_BAR_WIDTH, tab.h - 10, 1, ACCENT)
             }
             context.drawTextWithShadow(
-                textRenderer, tab.category.displayName, tab.x + 10,
-                tab.y + (tab.h - textRenderer.fontHeight) / 2, COLOR_WHITE
+                textRenderer, tab.category.displayName, tab.x + 14,
+                tab.y + (tab.h - textRenderer.fontHeight) / 2,
+                if (selected) ACCENT_SOFT else TEXT_DIM
             )
         }
 
+        val visibleHeight = bodyHeight - FOOTER_HEIGHT - CONTENT_PADDING
         val naturalHeight = layoutModules(contentX, contentTop, contentWidth, 0)
-        val visibleHeight = WINDOW_HEIGHT - HEADER_HEIGHT - CONTENT_PADDING * 2
         val maxScroll = max(0, naturalHeight - visibleHeight)
         scrollOffset = scrollOffset.coerceIn(0, maxScroll)
 
@@ -149,59 +146,114 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
         sliderRows.clear()
         layoutModules(contentX, contentTop, contentWidth, scrollOffset)
 
-        context.enableScissor(contentX, contentTop, contentX + contentWidth, contentBottom)
+        context.enableScissor(contentX, contentTop, contentX + contentWidth, footerTop)
+        drawContent(context, mouseX, mouseY, contentTop, footerTop)
+        context.disableScissor()
+
+        if (maxScroll > 0) {
+            val trackHeight = footerTop - contentTop - CONTENT_PADDING
+            val thumbHeight = max(16, trackHeight * visibleHeight / naturalHeight)
+            val thumbY = contentTop + CONTENT_PADDING / 2 + (trackHeight - thumbHeight) * scrollOffset / maxScroll
+            RoundedRect.fill(context, contentX + contentWidth - 5, thumbY, 3, thumbHeight, 1, COLOR_SCROLLBAR)
+        }
+
+        val footerText = hoveredDescription ?: "Right Shift to toggle this menu"
+        context.drawTextWithShadow(
+            textRenderer, trimToWidth(footerText, contentWidth - CONTENT_PADDING * 2),
+            contentX + CONTENT_PADDING, footerTop + (FOOTER_HEIGHT - textRenderer.fontHeight) / 2,
+            if (hoveredDescription != null) TEXT_DIM else TEXT_FAINT
+        )
+    }
+
+    private fun drawHeader(context: DrawContext, mouseX: Int, mouseY: Int) {
+        context.drawTextWithShadow(
+            textRenderer, "AutoBreaker", panelX + CONTENT_PADDING + 2,
+            panelY + (HEADER_HEIGHT - textRenderer.fontHeight) / 2, ACCENT
+        )
+        val enabled = ModuleManager.getModules().count { it.isEnabled }
+        context.drawTextWithShadow(
+            textRenderer, "$enabled active",
+            panelX + CONTENT_PADDING + 4 + textRenderer.getWidth("AutoBreaker") + 10,
+            panelY + (HEADER_HEIGHT - textRenderer.fontHeight) / 2, TEXT_FAINT
+        )
+
+        val closeX = panelX + WINDOW_WIDTH - CONTENT_PADDING - CLOSE_BUTTON_SIZE
+        val closeY = panelY + (HEADER_HEIGHT - CLOSE_BUTTON_SIZE) / 2
+        val closeHovered = contains(closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, mouseX.toDouble(), mouseY.toDouble())
+        if (closeHovered) {
+            RoundedRect.fill(context, closeX, closeY, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 4, COLOR_CLOSE_HOVER)
+        }
+        context.drawCenteredTextWithShadow(
+            textRenderer, Text.literal("✕"), closeX + CLOSE_BUTTON_SIZE / 2,
+            closeY + (CLOSE_BUTTON_SIZE - textRenderer.fontHeight) / 2,
+            if (closeHovered) TEXT_PRIMARY else TEXT_DIM
+        )
+    }
+
+    private fun drawContent(context: DrawContext, mouseX: Int, mouseY: Int, contentTop: Int, footerTop: Int) {
+        val mx = mouseX.toDouble()
+        val my = mouseY.toDouble()
+        fun inView(y: Double) = y >= contentTop && y <= footerTop
 
         editHudButton?.let { button ->
-            val hovered = contains(button.x, button.y, button.w, button.h, mouseX.toDouble(), mouseY.toDouble()) &&
-                withinContent(mouseY.toDouble(), contentTop, contentBottom)
-            RoundedRect.fill(context, button.x, button.y, button.w, button.h, 6, if (hovered) COLOR_TAB_HOVER else COLOR_ROW_IDLE)
+            val hovered = contains(button.x, button.y, button.w, button.h, mx, my) && inView(my)
+            RoundedRect.fill(context, button.x, button.y, button.w, button.h, 5, if (hovered) COLOR_ROW_HOVER else COLOR_ROW_BG)
             context.drawTextWithShadow(
-                textRenderer, "Edit HUD Layout...", button.x + 8,
-                button.y + (button.h - textRenderer.fontHeight) / 2, COLOR_ACCENT_TEXT
+                textRenderer, "Edit HUD Layout", button.x + 10,
+                button.y + (button.h - textRenderer.fontHeight) / 2, ACCENT_SOFT
             )
+            context.drawTextWithShadow(
+                textRenderer, "›", button.x + button.w - 14,
+                button.y + (button.h - textRenderer.fontHeight) / 2, TEXT_DIM
+            )
+            if (hovered) hoveredDescription = "Drag each HUD element anywhere on screen"
         }
 
         for (hit in moduleRows) {
             val enabled = hit.module.isEnabled
-            val hovered = contains(hit.x, hit.y, hit.w, hit.h, mouseX.toDouble(), mouseY.toDouble()) &&
-                withinContent(mouseY.toDouble(), contentTop, contentBottom)
-            val bg = if (enabled) COLOR_ROW_ENABLED_BG else if (hovered) COLOR_ROW_HOVER else COLOR_ROW_IDLE
-            RoundedRect.fill(context, hit.x, hit.y, hit.w, hit.h, 6, bg)
+            val hovered = contains(hit.x, hit.y, hit.w, hit.h, mx, my) && inView(my)
+            if (hovered) hoveredDescription = hit.module.description
+
+            RoundedRect.fill(context, hit.x, hit.y, hit.w, hit.h, 5, if (hovered) COLOR_ROW_HOVER else COLOR_ROW_BG)
             if (enabled) {
-                RoundedRect.fill(context, hit.x, hit.y, ACCENT_BAR_WIDTH, hit.h, 2, COLOR_ROW_ACCENT_BAR)
+                RoundedRect.fill(context, hit.x, hit.y, hit.w, hit.h, 5, ACCENT_FAINT)
+                RoundedRect.fill(context, hit.x, hit.y + 4, ACCENT_BAR_WIDTH, hit.h - 8, 1, ACCENT)
             }
-            val textX = hit.x + 8 + if (enabled) ACCENT_BAR_WIDTH + 2 else 0
             context.drawTextWithShadow(
-                textRenderer, hit.module.name, textX,
-                hit.y + (hit.h - textRenderer.fontHeight) / 2, if (enabled) COLOR_ACCENT_TEXT else COLOR_WHITE
+                textRenderer, hit.module.name, hit.x + 12,
+                hit.y + (hit.h - textRenderer.fontHeight) / 2,
+                if (enabled) TEXT_PRIMARY else TEXT_DIM
             )
-            drawToggle(context, hit.x + hit.w - TOGGLE_WIDTH - 8, hit.y + (hit.h - TOGGLE_HEIGHT) / 2, enabled)
+            drawToggle(context, hit.x + hit.w - TOGGLE_WIDTH - 10, hit.y + (hit.h - TOGGLE_HEIGHT) / 2, enabled)
         }
 
         for (hit in sliderRows) {
+            val hovered = contains(hit.x, hit.y, hit.w, hit.h, mx, my) && inView(my)
             RoundedRect.fill(context, hit.x, hit.y, hit.w, hit.h, 4, COLOR_SLIDER_TRACK)
-            val fillWidth = (hit.w * hit.setting.fraction).roundToInt()
-            if (fillWidth > 0) {
+
+            val fillWidth = (hit.w * hit.setting.fraction).roundToInt().coerceAtLeast(0)
+            if (fillWidth > 2) {
                 RoundedRect.fill(context, hit.x, hit.y, fillWidth, hit.h, 4, COLOR_SLIDER_FILL)
+                RoundedRect.fill(context, hit.x + fillWidth - 2, hit.y, 2, hit.h, 1, ACCENT)
             }
-            val label = "${hit.setting.name}: ${hit.setting.value}"
-            context.drawTextWithShadow(textRenderer, label, hit.x + 4, hit.y + (hit.h - textRenderer.fontHeight) / 2, COLOR_WHITE)
-        }
-
-        context.disableScissor()
-
-        if (maxScroll > 0) {
-            val thumbHeight = max(12, visibleHeight * visibleHeight / naturalHeight)
-            val thumbY = contentTop + (visibleHeight - thumbHeight) * scrollOffset / maxScroll
-            context.fill(contentX + contentWidth - 4, thumbY, contentX + contentWidth - 1, thumbY + thumbHeight, COLOR_SCROLLBAR)
+            context.drawTextWithShadow(
+                textRenderer, hit.setting.name, hit.x + 8,
+                hit.y + (hit.h - textRenderer.fontHeight) / 2, if (hovered) TEXT_PRIMARY else TEXT_DIM
+            )
+            val value = hit.setting.value.toString()
+            context.drawTextWithShadow(
+                textRenderer, value, hit.x + hit.w - textRenderer.getWidth(value) - 8,
+                hit.y + (hit.h - textRenderer.fontHeight) / 2, ACCENT_SOFT
+            )
+            if (hovered) hoveredDescription = "Drag to change ${hit.setting.name.lowercase()}"
         }
     }
 
     private fun layoutTabs() {
         tabHits.clear()
-        var y = panelY + HEADER_HEIGHT + TAB_SPACING
-        val x = panelX + TAB_SPACING
-        val w = SIDEBAR_WIDTH - TAB_SPACING * 2
+        var y = panelY + HEADER_HEIGHT + 8
+        val x = panelX + 6
+        val w = SIDEBAR_WIDTH - 12
         for (category in Category.values()) {
             if (ModuleManager.getModules(category).isEmpty()) {
                 continue
@@ -213,13 +265,13 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
 
     private fun layoutModules(contentX: Int, contentTop: Int, contentWidth: Int, scrollOffsetPx: Int): Int {
         val rowX = contentX + CONTENT_PADDING
-        val rowWidth = contentWidth - CONTENT_PADDING * 2
+        val rowWidth = contentWidth - CONTENT_PADDING * 2 - 4
         var y = contentTop + CONTENT_PADDING - scrollOffsetPx
 
         editHudButton = null
         if (selectedCategory == Category.HUD) {
             editHudButton = ButtonHit(rowX, y, rowWidth, ROW_HEIGHT)
-            y += ROW_HEIGHT + ROW_SPACING
+            y += ROW_HEIGHT + ROW_SPACING * 2
         }
 
         for (module in ModuleManager.getModules(selectedCategory)) {
@@ -228,7 +280,8 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
             if (module.isEnabled) {
                 for (setting in module.settings) {
                     if (setting is IntSetting) {
-                        sliderRows += SliderHit(setting, rowX, y, rowWidth, SLIDER_HEIGHT)
+                        // Indented so it reads as belonging to the row above.
+                        sliderRows += SliderHit(setting, rowX + SLIDER_INDENT, y, rowWidth - SLIDER_INDENT, SLIDER_HEIGHT)
                         y += SLIDER_HEIGHT + ROW_SPACING
                     }
                 }
@@ -262,8 +315,8 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
         }
 
         val contentTop = panelY + HEADER_HEIGHT
-        val contentBottom = panelY + WINDOW_HEIGHT
-        if (!withinContent(my, contentTop, contentBottom)) {
+        val footerTop = panelY + WINDOW_HEIGHT - FOOTER_HEIGHT
+        if (my < contentTop || my > footerTop) {
             return false
         }
 
@@ -320,23 +373,32 @@ class ClickGuiScreen : Screen(Text.literal("AutoBreaker")) {
         return true
     }
 
-    private fun withinContent(y: Double, contentTop: Int, contentBottom: Int) = y in contentTop.toDouble()..contentBottom.toDouble()
+    private fun trimToWidth(text: String, maxWidth: Int): String {
+        if (textRenderer.getWidth(text) <= maxWidth) {
+            return text
+        }
+        var cut = text
+        while (cut.isNotEmpty() && textRenderer.getWidth("$cut...") > maxWidth) {
+            cut = cut.dropLast(1)
+        }
+        return "$cut..."
+    }
 
     private fun tryApplyBlur(context: DrawContext) {
         try {
             context.applyBlur()
         } catch (alreadyBlurred: IllegalStateException) {
-            // Minecraft itself applies a blur once per frame when a screen is opened
+            // Minecraft itself applies a blur once per frame when a screen opens
             // (Screen#renderBackground, gated by the vanilla "Menu Background
-            // Blurriness" option) and can do so immediately on open, before our own
-            // render() call. The effect is already in place either way, so ignore it.
+            // Blurriness" option) and can do so before our own render() runs.
+            // The effect is already in place either way, so ignore it.
         }
     }
 
     private fun drawToggle(context: DrawContext, x: Int, y: Int, on: Boolean) {
         RoundedRect.fill(
             context, x, y, TOGGLE_WIDTH, TOGGLE_HEIGHT, TOGGLE_HEIGHT / 2,
-            if (on) COLOR_TOGGLE_TRACK_ON else COLOR_TOGGLE_TRACK_OFF
+            if (on) ACCENT else COLOR_TOGGLE_OFF
         )
         val thumbSize = TOGGLE_HEIGHT - 4
         val thumbX = if (on) x + TOGGLE_WIDTH - thumbSize - 2 else x + 2
