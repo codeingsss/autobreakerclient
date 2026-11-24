@@ -131,14 +131,14 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         context.fill(winX, winY + HEADER_HEIGHT - 1, winX + winW, winY + HEADER_HEIGHT, Theme.WINDOW_BORDER)
 
         context.roundRect(winX + PAD + 2, winY + 10, 3, 10, 1, Theme.ACCENT)
-        context.drawText(font, "AutoBreaker", winX + PAD + 10, winY + 11, Theme.TEXT, false)
+        context.drawText(font, Theme.uiMedium("AutoBreaker"), winX + PAD + 10, winY + 11, Theme.TEXT, false)
 
         val box = searchBounds()
         val hovered = box.contains(mouseX, mouseY)
         val border = if (searchFocused) Theme.ACCENT else if (hovered) Theme.TRACK else Theme.WINDOW_BORDER
         context.roundOutline(box.x, box.y, box.w, box.h, 7, 1, border, Theme.FIELD)
         val placeholder = search.isEmpty() && !searchFocused
-        val shown = font.trimToWidth(if (placeholder) "Search" else search, box.w - 14)
+        val shown = font.uiTrim(if (placeholder) "Search" else search, box.w - 14)
         context.drawText(
             font,
             shown,
@@ -155,7 +155,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         val close = closeBounds()
         context.drawText(
             font,
-            "x",
+            Theme.ui("x"),
             close.x + 6,
             close.y + 5,
             if (close.contains(mouseX, mouseY)) Theme.TEXT else Theme.TEXT_MUTED,
@@ -180,7 +180,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
             val enabledCount = ModuleManager.getModules(category).count { it.isEnabled }
             context.drawText(
                 font,
-                font.trimToWidth(category.displayName, bounds.w - 32),
+                font.uiTrim(category.displayName, bounds.w - 32, medium = active),
                 bounds.x + 13,
                 bounds.y + 5,
                 if (active) Theme.ACCENT_TEXT else if (hovered) Theme.TEXT else Theme.TEXT_MUTED,
@@ -190,8 +190,8 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
                 val badge = enabledCount.toString()
                 context.drawText(
                     font,
-                    badge,
-                    bounds.x + bounds.w - 12 - font.getWidth(badge),
+                    Theme.ui(badge),
+                    bounds.x + bounds.w - 12 - font.uiWidth(badge),
                     bounds.y + 5,
                     if (active) Theme.ACCENT else Theme.TEXT_FAINT,
                     false,
@@ -205,7 +205,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         context.fill(hud.x + 11, hud.y - 5, hud.x + hud.w - 11, hud.y - 4, Theme.WINDOW_BORDER)
         context.drawText(
             font,
-            "Edit HUD",
+            Theme.ui("Edit HUD"),
             hud.x + 13,
             hud.y + 5,
             if (hudHovered) Theme.TEXT else Theme.TEXT_MUTED,
@@ -219,7 +219,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
 
         if (modules.isEmpty()) {
             val message = if (search.isBlank()) "Nothing here yet." else "No match for \"$search\""
-            context.drawText(font, message, rowX() + 4, contentY() + PAD + 4, Theme.TEXT_FAINT, false)
+            context.drawText(font, Theme.ui(message), rowX() + 4, contentY() + PAD + 4, Theme.TEXT_FAINT, false)
         }
 
         var y = contentY() + PAD - scroll.roundToInt()
@@ -267,7 +267,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
 
         context.drawText(
             font,
-            font.trimToWidth(module.name, labelWidth),
+            font.uiTrim(module.name, labelWidth, medium = module.isEnabled),
             x + 8,
             y + 6,
             Theme.mix(Theme.TEXT_MUTED, Theme.TEXT, maxOf(on, hover)),
@@ -277,7 +277,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         if (settings.isNotEmpty()) {
             context.drawText(
                 font,
-                if (isExpanded(module)) "-" else "+",
+                Theme.ui(if (isExpanded(module)) "-" else "+"),
                 switch.x - 11,
                 y + 6,
                 if (isExpanded(module)) Theme.ACCENT_TEXT else Theme.TEXT_FAINT,
@@ -299,12 +299,12 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         if (!isExpanded(module)) return
         settings.forEachIndexed { i, setting ->
             val rowY = y + ROW_HEIGHT + i * SETTING_ROW_HEIGHT
-            context.drawText(font, setting.name, x + 18, rowY + 1, Theme.TEXT_MUTED, false)
+            context.drawText(font, Theme.ui(setting.name), x + 18, rowY + 1, Theme.TEXT_MUTED, false)
             val valueText = setting.value.toString()
             context.drawText(
                 font,
-                valueText,
-                x + w - 10 - font.getWidth(valueText),
+                Theme.uiMedium(valueText),
+                x + w - 10 - font.uiWidth(valueText),
                 rowY + 1,
                 Theme.ACCENT_TEXT,
                 false,
@@ -326,7 +326,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         val color = if (module != null) Theme.TEXT_MUTED else Theme.TEXT_FAINT
         context.drawText(
             font,
-            font.trimToWidth(text, winW - RAIL_WIDTH - PAD * 2),
+            font.uiTrim(text, winW - RAIL_WIDTH - PAD * 2),
             winX + RAIL_WIDTH + PAD,
             footerY + 7,
             color,
