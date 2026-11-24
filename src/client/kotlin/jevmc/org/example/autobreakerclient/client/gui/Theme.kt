@@ -36,9 +36,12 @@ object Theme {
     const val ACCENT_DIM = 0x40FF8A33
     const val ACCENT_TEXT = 0xFFFFA866.toInt()
 
-    const val TEXT = 0xFFE9EAEE.toInt()
-    const val TEXT_MUTED = 0xFF8A8F9C.toInt()
-    const val TEXT_FAINT = 0xFF5F6472.toInt()
+    // Kept fairly bright on purpose: at GUI scale 1 the font is rasterised
+    // around 9px with no hinting, and dim thin strokes drop out entirely -
+    // "Quality of Life" came out as "QuLity of ..fe" at the old values.
+    const val TEXT = 0xFFF0F1F5.toInt()
+    const val TEXT_MUTED = 0xFFADB2BF.toInt()
+    const val TEXT_FAINT = 0xFF8990A0.toInt()
 
     /** Linear blend between two ARGB colours; [t] is clamped to 0..1. */
     fun mix(from: Int, to: Int, t: Double): Int {
