@@ -27,7 +27,10 @@ import kotlin.math.roundToInt
  * switch or rail widget to borrow. Toggling and dragging write straight through
  * to the live [Module]; [close] is the only place that persists them.
  */
-class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("AutoBreaker")) {
+class ModMenuScreen(
+    expandAllOnOpen: Boolean = false,
+    initialCategory: Category = Category.entries.first(),
+) : Screen(Text.literal("AutoBreaker")) {
 
     private companion object {
         const val HEADER_HEIGHT = 30
@@ -39,7 +42,7 @@ class ModMenuScreen(expandAllOnOpen: Boolean = false) : Screen(Text.literal("Aut
         const val SCROLLBAR_WIDTH = 3
     }
 
-    private var selected: Category = Category.entries.first()
+    private var selected: Category = initialCategory
     private var search = ""
     private var searchFocused = false
     private var scroll = 0.0

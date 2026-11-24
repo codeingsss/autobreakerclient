@@ -1,6 +1,7 @@
 package jevmc.org.example.autobreakerclient.client.dev;
 
 import jevmc.org.example.autobreakerclient.client.gui.ModMenuScreen;
+import jevmc.org.example.autobreakerclient.client.module.Category;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -50,8 +51,17 @@ public final class UiPreviewCapture {
         }
         ticks++;
         if (ticks == OPEN_AFTER_TITLE) {
-            // Expanded, so the screenshot shows the settings rows too.
-            client.setScreen(new ModMenuScreen(true));
+            // Expanded, on the HUD tab, so the screenshot shows the full
+            // module list this category now has.
+            client.setScreen(new ModMenuScreen(true, Category.HUD));
+        } else if (ticks == SHOOT_AFTER_TITLE - 5) {
+            // Scroll to the bottom of the list so newly-added rows at the end
+            // are in the shot too, not just whatever fits above the fold.
+            if (client.currentScreen instanceof ModMenuScreen menu) {
+                for (int i = 0; i < 40; i++) {
+                    menu.mouseScrolled(0, 0, 0, -1);
+                }
+            }
         } else if (ticks == SHOOT_AFTER_TITLE) {
             // The framebuffer still holds the last rendered frame, which is the
             // menu we opened 20 ticks ago.

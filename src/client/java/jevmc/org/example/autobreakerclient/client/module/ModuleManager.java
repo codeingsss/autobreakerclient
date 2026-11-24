@@ -2,7 +2,11 @@ package jevmc.org.example.autobreakerclient.client.module;
 
 import jevmc.org.example.autobreakerclient.client.config.ConfigManager;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.ArmorHudModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.BehindYouModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.ClockModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.KeystrokesModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.MemoryModule;
+import jevmc.org.example.autobreakerclient.client.module.impl.hud.PotionEffectsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.CoordinatesModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.CpsModule;
 import jevmc.org.example.autobreakerclient.client.module.impl.hud.FpsCounterModule;
@@ -70,6 +74,10 @@ public final class ModuleManager {
         MODULES.add(new ArmorHudModule());
         MODULES.add(new ServerAddressModule());
         MODULES.add(new NetworkDoctorModule());
+        MODULES.add(new KeystrokesModule());
+        MODULES.add(new PotionEffectsModule());
+        MODULES.add(new MemoryModule());
+        MODULES.add(new BehindYouModule());
     }
 
     /**
